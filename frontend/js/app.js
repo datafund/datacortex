@@ -62,7 +62,12 @@ class Datacortex {
                     (n.tags && n.tags.some(t => t.toLowerCase().includes(query)))
                 );
                 const nodeIds = new Set(nodes.map(n => n.id));
-                links = links.filter(l => nodeIds.has(l.source) || nodeIds.has(l.source.id));
+                // Handle both string IDs (from API) and object refs (after D3 render)
+                links = links.filter(l => {
+                    const sourceId = typeof l.source === 'object' ? l.source.id : l.source;
+                    const targetId = typeof l.target === 'object' ? l.target.id : l.target;
+                    return nodeIds.has(sourceId) && nodeIds.has(targetId);
+                });
             }
 
             // Update visualization
