@@ -12,6 +12,7 @@ app = FastAPI(
     title="Datacortex",
     description="Knowledge Graph Visualization for Datacore",
     version="0.1.0",
+    redirect_slashes=False,
 )
 
 # CORS middleware for frontend

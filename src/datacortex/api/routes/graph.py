@@ -10,6 +10,7 @@ from ...indexer.graph_builder import build_graph
 router = APIRouter()
 
 
+@router.get("")
 @router.get("/")
 async def get_graph(
     spaces: Optional[str] = Query(None, description="Comma-separated list of spaces"),

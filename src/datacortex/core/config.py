@@ -6,6 +6,8 @@ from typing import Optional
 import yaml
 from pydantic import BaseModel, Field
 
+from .database import DATA_ROOT
+
 
 class ServerConfig(BaseModel):
     """Server configuration."""
@@ -36,7 +38,7 @@ class VisualizationConfig(BaseModel):
 
 class DatacortexConfig(BaseModel):
     """Main configuration for Datacortex."""
-    datacore_root: Path = Field(default_factory=lambda: Path.home() / "Data")
+    datacore_root: Path = Field(default_factory=lambda: DATA_ROOT)
     spaces: list[str] = Field(default_factory=lambda: ["personal", "datafund"])
     server: ServerConfig = Field(default_factory=ServerConfig)
     pulse: PulseConfig = Field(default_factory=PulseConfig)

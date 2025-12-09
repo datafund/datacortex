@@ -1,22 +1,59 @@
 """Database connection wrapper for Datacore knowledge database."""
 
+import os
 import sqlite3
 import sys
 from pathlib import Path
 from typing import Optional
 
+# Detect DATA_ROOT from environment, cwd, or relative to this file
+def _find_datacore_root() -> Path:
+    """Find the datacore root directory."""
+    # Check environment variable first
+    if 'DATACORE_ROOT' in os.environ:
+        return Path(os.environ['DATACORE_ROOT'])
+
+    # Try current working directory and its parents
+    cwd = Path.cwd().resolve()
+    for path in [cwd] + list(cwd.parents):
+        if (path / '.datacore').is_dir() and (path / 'CLAUDE.md').is_file():
+            return path
+
+    # Try to find by walking up from this file
+    current = Path(__file__).resolve()
+    for parent in current.parents:
+        if (parent / '.datacore').is_dir() and (parent / '0-personal').is_dir():
+            return parent
+        if (parent / '.datacore').is_dir() and (parent / 'CLAUDE.md').is_file():
+            return parent
+
+    # Fallback to ~/repos/datacore or ~/Data
+    for path in [Path.home() / "repos" / "datacore", Path.home() / "Data"]:
+        if path.is_dir() and (path / '.datacore').is_dir():
+            return path
+
+    # Last resort
+    return Path.home() / "Data"
+
+DATA_ROOT = _find_datacore_root()
+
 # Add datacore lib to path for importing zettel_db
-DATACORE_LIB = Path.home() / "Data" / ".datacore" / "lib"
+DATACORE_LIB = DATA_ROOT / ".datacore" / "lib"
 if str(DATACORE_LIB) not in sys.path:
     sys.path.insert(0, str(DATACORE_LIB))
 
 # Try to import from zettel_db, fall back to direct implementation
 try:
-    from zettel_db import get_connection as _get_connection, SPACES, DATA_ROOT
+    from zettel_db import get_connection as _get_connection, SPACES as _SPACES
     HAS_ZETTEL_DB = True
+    # Override SPACES with our detected DATA_ROOT
+    SPACES = {
+        'personal': {'path': DATA_ROOT / '0-personal'},
+        'datafund': {'path': DATA_ROOT / '1-datafund'},
+        'datacore': {'path': DATA_ROOT / '2-datacore'},
+    }
 except ImportError:
     HAS_ZETTEL_DB = False
-    DATA_ROOT = Path.home() / "Data"
     SPACES = {
         'personal': {'path': DATA_ROOT / '0-personal'},
         'datafund': {'path': DATA_ROOT / '1-datafund'},

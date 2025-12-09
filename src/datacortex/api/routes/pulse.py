@@ -17,6 +17,7 @@ from ...pulse.generator import (
 router = APIRouter()
 
 
+@router.get("")
 @router.get("/")
 async def get_pulses():
     """List all available pulses with metadata."""
