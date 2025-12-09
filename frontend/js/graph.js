@@ -257,23 +257,21 @@ class GraphView {
         const graphWidth = maxX - minX;
         const graphHeight = maxY - minY;
 
-        // Clear and redraw minimap nodes
-        this.minimapContent.selectAll('*').remove();
+        // Use D3 data join for efficient updates
+        const minimapNodes = this.minimapContent.selectAll('circle')
+            .data(nodes, d => d.id);
 
-        // Draw nodes as small dots
-        nodes.forEach(n => {
-            if (n.x !== undefined && n.y !== undefined) {
-                // Map graph coordinates to minimap coordinates
-                const mmX = ((n.x - minX) / graphWidth) * this.minimapWidth;
-                const mmY = ((n.y - minY) / graphHeight) * this.minimapHeight;
+        // Enter new nodes
+        minimapNodes.enter()
+            .append('circle')
+            .attr('r', 1.5)
+            .attr('fill', d => this.nodeColor(d))
+            .merge(minimapNodes)
+            .attr('cx', d => ((d.x - minX) / graphWidth) * this.minimapWidth)
+            .attr('cy', d => ((d.y - minY) / graphHeight) * this.minimapHeight);
 
-                this.minimapContent.append('circle')
-                    .attr('cx', mmX)
-                    .attr('cy', mmY)
-                    .attr('r', 1.5)
-                    .attr('fill', this.nodeColor(n));
-            }
-        });
+        // Remove old nodes
+        minimapNodes.exit().remove();
 
         // Update viewport indicator
         this.updateMinimapViewport();
@@ -412,10 +410,10 @@ class GraphView {
 
             node.attr('transform', d => `translate(${d.x},${d.y})`);
 
-            // Update minimap periodically (every 10 ticks for performance)
+            // Update minimap periodically (every 30 ticks for performance)
             if (!this._tickCount) this._tickCount = 0;
             this._tickCount++;
-            if (this._tickCount % 10 === 0) {
+            if (this._tickCount % 30 === 0) {
                 this.updateMinimap();
             }
         });
