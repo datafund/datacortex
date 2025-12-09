@@ -192,23 +192,31 @@ class GraphView {
         // Graph content group
         this.minimapContent = this.minimapSvg.append('g').attr('class', 'minimap-content');
 
-        // Viewport indicator
+        // Viewport indicator (add after content so it's on top)
         this.minimapViewport = this.minimapSvg.append('rect')
             .attr('class', 'minimap-viewport')
             .attr('fill', 'rgba(16, 185, 129, 0.2)')
             .attr('stroke', 'var(--accent)')
-            .attr('stroke-width', 1);
+            .attr('stroke-width', 2);
 
-        // Make minimap draggable to pan main view
+        // Store graph bounds for click navigation
+        this.graphBounds = null;
+
+        // Click to navigate
         this.minimapSvg.on('click', (event) => {
-            if (!this.minimapScale) return;
-            const [mx, my] = d3.pointer(event);
-            const x = (mx - this.minimapWidth / 2) / this.minimapScale;
-            const y = (my - this.minimapHeight / 2) / this.minimapScale;
+            if (!this.graphBounds) return;
 
+            const [mx, my] = d3.pointer(event);
+
+            // Convert minimap click to graph coordinates
+            const graphX = this.graphBounds.minX + (mx / this.minimapWidth) * (this.graphBounds.maxX - this.graphBounds.minX);
+            const graphY = this.graphBounds.minY + (my / this.minimapHeight) * (this.graphBounds.maxY - this.graphBounds.minY);
+
+            // Center the main view on this point
+            const currentScale = this.currentTransform?.k || 1;
             const transform = d3.zoomIdentity
-                .translate(this.width / 2 - x, this.height / 2 - y)
-                .scale(this.currentTransform?.k || 1);
+                .translate(this.width / 2 - graphX * currentScale, this.height / 2 - graphY * currentScale)
+                .scale(currentScale);
 
             this.svg.transition().duration(300).call(this.zoom.transform, transform);
         });
@@ -220,93 +228,84 @@ class GraphView {
         const nodes = this.simulation.nodes();
         if (nodes.length === 0) return;
 
-        // Calculate bounds
+        // Calculate graph bounds
         let minX = Infinity, maxX = -Infinity;
         let minY = Infinity, maxY = -Infinity;
 
         nodes.forEach(n => {
-            minX = Math.min(minX, n.x);
-            maxX = Math.max(maxX, n.x);
-            minY = Math.min(minY, n.y);
-            maxY = Math.max(maxY, n.y);
+            if (n.x !== undefined && n.y !== undefined) {
+                minX = Math.min(minX, n.x);
+                maxX = Math.max(maxX, n.x);
+                minY = Math.min(minY, n.y);
+                maxY = Math.max(maxY, n.y);
+            }
         });
 
-        const padding = 20;
-        const graphWidth = maxX - minX + padding * 2;
-        const graphHeight = maxY - minY + padding * 2;
+        // Guard against invalid bounds
+        if (!isFinite(minX) || !isFinite(maxX)) return;
 
-        // Calculate scale to fit graph in minimap
-        this.minimapScale = Math.min(
-            this.minimapWidth / graphWidth,
-            this.minimapHeight / graphHeight
-        ) * 0.9;
+        // Add padding
+        const padding = 50;
+        minX -= padding;
+        maxX += padding;
+        minY -= padding;
+        maxY += padding;
 
-        const centerX = (minX + maxX) / 2;
-        const centerY = (minY + maxY) / 2;
+        // Store bounds for click navigation
+        this.graphBounds = { minX, maxX, minY, maxY };
 
-        // Update minimap content
-        this.minimapContent.attr('transform',
-            `translate(${this.minimapWidth / 2}, ${this.minimapHeight / 2}) scale(${this.minimapScale}) translate(${-centerX}, ${-centerY})`
-        );
+        const graphWidth = maxX - minX;
+        const graphHeight = maxY - minY;
 
-        // Render nodes in minimap
-        const minimapNodes = this.minimapContent.selectAll('circle')
-            .data(nodes, d => d.id);
+        // Clear and redraw minimap nodes
+        this.minimapContent.selectAll('*').remove();
 
-        minimapNodes.enter()
-            .append('circle')
-            .attr('r', 2)
-            .attr('fill', d => this.nodeColor(d))
-            .merge(minimapNodes)
-            .attr('cx', d => d.x)
-            .attr('cy', d => d.y);
+        // Draw nodes as small dots
+        nodes.forEach(n => {
+            if (n.x !== undefined && n.y !== undefined) {
+                // Map graph coordinates to minimap coordinates
+                const mmX = ((n.x - minX) / graphWidth) * this.minimapWidth;
+                const mmY = ((n.y - minY) / graphHeight) * this.minimapHeight;
 
-        minimapNodes.exit().remove();
+                this.minimapContent.append('circle')
+                    .attr('cx', mmX)
+                    .attr('cy', mmY)
+                    .attr('r', 1.5)
+                    .attr('fill', this.nodeColor(n));
+            }
+        });
 
         // Update viewport indicator
         this.updateMinimapViewport();
     }
 
     updateMinimapViewport() {
-        if (!this.minimapScale) return;
+        if (!this.graphBounds || !this.minimapViewport) return;
 
         const transform = this.currentTransform || d3.zoomIdentity;
-        const scale = transform.k;
+        const { minX, maxX, minY, maxY } = this.graphBounds;
+        const graphWidth = maxX - minX;
+        const graphHeight = maxY - minY;
 
-        // Viewport size in graph coordinates
-        const viewWidth = this.width / scale;
-        const viewHeight = this.height / scale;
+        // Calculate what part of the graph is visible
+        // The main view shows graph coordinates based on the current transform
+        const visibleLeft = -transform.x / transform.k;
+        const visibleTop = -transform.y / transform.k;
+        const visibleRight = (this.width - transform.x) / transform.k;
+        const visibleBottom = (this.height - transform.y) / transform.k;
 
-        // Viewport center in graph coordinates
-        const viewCenterX = (this.width / 2 - transform.x) / scale;
-        const viewCenterY = (this.height / 2 - transform.y) / scale;
+        // Convert visible area to minimap coordinates
+        const mmX = ((visibleLeft - minX) / graphWidth) * this.minimapWidth;
+        const mmY = ((visibleTop - minY) / graphHeight) * this.minimapHeight;
+        const mmW = ((visibleRight - visibleLeft) / graphWidth) * this.minimapWidth;
+        const mmH = ((visibleBottom - visibleTop) / graphHeight) * this.minimapHeight;
 
-        // Get graph center (same as in updateMinimap)
-        const nodes = this.simulation?.nodes() || [];
-        if (nodes.length === 0) return;
-
-        let minX = Infinity, maxX = -Infinity;
-        let minY = Infinity, maxY = -Infinity;
-        nodes.forEach(n => {
-            minX = Math.min(minX, n.x);
-            maxX = Math.max(maxX, n.x);
-            minY = Math.min(minY, n.y);
-            maxY = Math.max(maxY, n.y);
-        });
-        const centerX = (minX + maxX) / 2;
-        const centerY = (minY + maxY) / 2;
-
-        // Convert to minimap coordinates
-        const mmX = this.minimapWidth / 2 + (viewCenterX - centerX) * this.minimapScale - (viewWidth * this.minimapScale) / 2;
-        const mmY = this.minimapHeight / 2 + (viewCenterY - centerY) * this.minimapScale - (viewHeight * this.minimapScale) / 2;
-        const mmW = viewWidth * this.minimapScale;
-        const mmH = viewHeight * this.minimapScale;
-
+        // Clamp to minimap bounds
         this.minimapViewport
-            .attr('x', mmX)
-            .attr('y', mmY)
-            .attr('width', Math.max(10, mmW))
-            .attr('height', Math.max(10, mmH));
+            .attr('x', Math.max(0, Math.min(this.minimapWidth - 10, mmX)))
+            .attr('y', Math.max(0, Math.min(this.minimapHeight - 10, mmY)))
+            .attr('width', Math.max(10, Math.min(this.minimapWidth, mmW)))
+            .attr('height', Math.max(10, Math.min(this.minimapHeight, mmH)));
     }
 
     render(data) {
