@@ -246,6 +246,19 @@ class Datacortex {
                 ${type} (${count})
             </label>
         `).join('');
+
+        // Add event listeners for type filters
+        container.querySelectorAll('input').forEach(input => {
+            input.addEventListener('change', () => {
+                if (input.checked) {
+                    this.filters.types.delete(input.dataset.type);
+                } else {
+                    this.filters.types.add(input.dataset.type);
+                }
+                // Note: types filter is inverted (checked = include, unchecked = exclude)
+                this.loadGraph();
+            });
+        });
     }
 
     async loadOrphans() {

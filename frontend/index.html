@@ -63,6 +63,32 @@
                     <button id="export-svg">Export SVG</button>
                     <button id="export-png">Export PNG</button>
                 </div>
+
+                <div class="control-group">
+                    <label>Graph Controls</label>
+                    <div class="button-row">
+                        <button id="zoom-in-btn" title="Zoom In">+</button>
+                        <button id="zoom-out-btn" title="Zoom Out">−</button>
+                        <button id="fit-btn" title="Fit to Screen">⊡</button>
+                        <button id="reset-zoom-btn" title="Reset View">↺</button>
+                    </div>
+                </div>
+
+                <div class="control-group">
+                    <label>Link Distance: <span id="link-distance-value">80</span></label>
+                    <input type="range" id="link-distance" min="20" max="200" value="80">
+                </div>
+
+                <div class="control-group">
+                    <label>Repulsion: <span id="charge-value">200</span></label>
+                    <input type="range" id="charge-strength" min="50" max="500" value="200">
+                </div>
+
+                <div class="control-group">
+                    <label>
+                        <input type="checkbox" id="physics-enabled" checked> Physics enabled
+                    </label>
+                </div>
             </section>
 
             <section id="stats">

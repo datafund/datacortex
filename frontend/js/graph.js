@@ -69,18 +69,97 @@ class GraphView {
     }
 
     setupZoom() {
-        const zoom = d3.zoom()
-            .scaleExtent([0.1, 4])
+        this.zoom = d3.zoom()
+            .scaleExtent([0.1, 8])
             .on('zoom', (event) => {
                 this.mainGroup.attr('transform', event.transform);
+                this.currentTransform = event.transform;
             });
 
-        this.svg.call(zoom);
+        this.svg.call(this.zoom);
+        this.currentTransform = d3.zoomIdentity;
 
         // Double-click to reset
         this.svg.on('dblclick.zoom', () => {
-            this.svg.transition().duration(500).call(zoom.transform, d3.zoomIdentity);
+            this.resetZoom();
         });
+    }
+
+    // Graph view control methods
+    zoomIn() {
+        this.svg.transition().duration(300).call(this.zoom.scaleBy, 1.5);
+    }
+
+    zoomOut() {
+        this.svg.transition().duration(300).call(this.zoom.scaleBy, 0.67);
+    }
+
+    resetZoom() {
+        this.svg.transition().duration(500).call(this.zoom.transform, d3.zoomIdentity);
+    }
+
+    fitToScreen() {
+        if (!this.simulation || !this.simulation.nodes()) return;
+
+        const nodes = this.simulation.nodes();
+        if (nodes.length === 0) return;
+
+        // Calculate bounds
+        let minX = Infinity, maxX = -Infinity;
+        let minY = Infinity, maxY = -Infinity;
+
+        nodes.forEach(n => {
+            minX = Math.min(minX, n.x);
+            maxX = Math.max(maxX, n.x);
+            minY = Math.min(minY, n.y);
+            maxY = Math.max(maxY, n.y);
+        });
+
+        const padding = 50;
+        const graphWidth = maxX - minX + padding * 2;
+        const graphHeight = maxY - minY + padding * 2;
+
+        const scale = Math.min(
+            this.width / graphWidth,
+            this.height / graphHeight,
+            2  // Max scale
+        ) * 0.9;
+
+        const centerX = (minX + maxX) / 2;
+        const centerY = (minY + maxY) / 2;
+
+        const transform = d3.zoomIdentity
+            .translate(this.width / 2, this.height / 2)
+            .scale(scale)
+            .translate(-centerX, -centerY);
+
+        this.svg.transition().duration(500).call(this.zoom.transform, transform);
+    }
+
+    togglePhysics() {
+        if (!this.simulation) return;
+
+        if (this.simulation.alpha() < 0.05) {
+            // Restart simulation
+            this.simulation.alpha(0.3).restart();
+            return true;  // Physics enabled
+        } else {
+            // Stop simulation
+            this.simulation.stop();
+            return false;  // Physics disabled
+        }
+    }
+
+    setLinkDistance(distance) {
+        if (!this.simulation) return;
+        this.simulation.force('link').distance(distance);
+        this.simulation.alpha(0.3).restart();
+    }
+
+    setChargeStrength(strength) {
+        if (!this.simulation) return;
+        this.simulation.force('charge').strength(strength);
+        this.simulation.alpha(0.3).restart();
     }
 
     setupTooltip() {

@@ -112,6 +112,56 @@ function setupControls(app) {
         }
     });
 
+    // Graph view controls
+    document.getElementById('zoom-in-btn').addEventListener('click', () => {
+        app.graphView.zoomIn();
+    });
+
+    document.getElementById('zoom-out-btn').addEventListener('click', () => {
+        app.graphView.zoomOut();
+    });
+
+    document.getElementById('fit-btn').addEventListener('click', () => {
+        app.graphView.fitToScreen();
+    });
+
+    document.getElementById('reset-zoom-btn').addEventListener('click', () => {
+        app.graphView.resetZoom();
+    });
+
+    // Link distance slider
+    const linkDistanceSlider = document.getElementById('link-distance');
+    const linkDistanceValue = document.getElementById('link-distance-value');
+
+    linkDistanceSlider.addEventListener('input', () => {
+        linkDistanceValue.textContent = linkDistanceSlider.value;
+    });
+
+    linkDistanceSlider.addEventListener('change', () => {
+        app.graphView.setLinkDistance(parseInt(linkDistanceSlider.value));
+    });
+
+    // Charge strength slider
+    const chargeSlider = document.getElementById('charge-strength');
+    const chargeValue = document.getElementById('charge-value');
+
+    chargeSlider.addEventListener('input', () => {
+        chargeValue.textContent = chargeSlider.value;
+    });
+
+    chargeSlider.addEventListener('change', () => {
+        app.graphView.setChargeStrength(-parseInt(chargeSlider.value));
+    });
+
+    // Physics toggle
+    document.getElementById('physics-enabled').addEventListener('change', (e) => {
+        if (e.target.checked) {
+            app.graphView.simulation?.alpha(0.3).restart();
+        } else {
+            app.graphView.simulation?.stop();
+        }
+    });
+
     // Keyboard shortcuts
     document.addEventListener('keydown', (e) => {
         // Escape to close details panel
