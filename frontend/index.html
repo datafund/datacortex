@@ -39,8 +39,29 @@
                 </div>
 
                 <div class="control-group">
+                    <label>Path Finder</label>
+                    <div id="path-finder">
+                        <input type="text" id="path-source" placeholder="Source node...">
+                        <input type="text" id="path-target" placeholder="Target node...">
+                        <button id="find-path-btn">Find Path</button>
+                        <div id="path-result"></div>
+                    </div>
+                </div>
+
+                <div class="control-group">
+                    <label>
+                        <input type="checkbox" id="color-by-cluster"> Color by cluster
+                    </label>
+                </div>
+
+                <div class="control-group">
                     <button id="refresh-btn">Refresh Graph</button>
                     <button id="pulse-btn">Generate Pulse</button>
+                </div>
+
+                <div class="control-group">
+                    <button id="export-svg">Export SVG</button>
+                    <button id="export-png">Export PNG</button>
                 </div>
             </section>
 
@@ -49,8 +70,35 @@
                 <div id="stats-content">Loading...</div>
             </section>
 
+            <section id="legend">
+                <h2>Legend</h2>
+                <div class="control-group">
+                    <div style="display: flex; align-items: center; gap: 0.5rem; padding: 0.25rem 0; font-size: 0.875rem;">
+                        <svg width="20" height="20">
+                            <circle cx="10" cy="10" r="8" fill="#10b981" stroke="#ffd700" stroke-width="3" style="filter: drop-shadow(0 0 4px gold);"></circle>
+                        </svg>
+                        <span style="color: var(--text-secondary);">Hub (top 10 connected)</span>
+                    </div>
+                </div>
+            </section>
+
+            <section id="tags-section">
+                <h2>Tags</h2>
+                <div id="tag-cloud">Loading...</div>
+            </section>
+
+            <section id="orphans-section">
+                <h2>Orphans <span id="orphan-count">(0)</span></h2>
+                <button id="show-orphans-btn">Show Orphans</button>
+                <div id="orphan-list" class="hidden"></div>
+            </section>
+
             <section id="pulses">
                 <h2>Timeline</h2>
+                <div id="timeline-container">
+                    <input type="range" id="timeline-slider" min="0" max="0" value="0" disabled>
+                    <div id="timeline-label">No pulses</div>
+                </div>
                 <div id="pulse-list">Loading...</div>
             </section>
         </aside>

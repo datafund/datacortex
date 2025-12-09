@@ -115,6 +115,21 @@ async def get_subgraph(
     }
 
 
+@router.get("/orphans")
+async def get_orphans():
+    """Get nodes with no connections (degree = 0)."""
+    config = load_config()
+    graph = build_graph(config=config)
+
+    orphans = [n for n in graph.nodes if n.degree == 0]
+    orphans.sort(key=lambda n: n.title)
+
+    return {
+        "count": len(orphans),
+        "orphans": [n.model_dump(mode='json') for n in orphans],
+    }
+
+
 @router.post("/refresh")
 async def refresh_graph():
     """Trigger re-indexing of source files.
@@ -128,4 +143,63 @@ async def refresh_graph():
     return {
         "status": "refreshed",
         "stats": graph.stats.model_dump(),
+    }
+
+
+@router.get("/path/{source_id}/{target_id}")
+async def find_path(source_id: str, target_id: str):
+    """Find shortest path between two nodes using BFS."""
+    config = load_config()
+    graph = build_graph(config=config)
+
+    # Build adjacency
+    adjacency = {}
+    for edge in graph.edges:
+        if edge.source not in adjacency:
+            adjacency[edge.source] = set()
+        adjacency[edge.source].add(edge.target)
+        if edge.target not in adjacency:
+            adjacency[edge.target] = set()
+        adjacency[edge.target].add(edge.source)
+
+    # BFS to find shortest path
+    if source_id not in adjacency or target_id not in adjacency:
+        return {"found": False, "path": [], "length": -1}
+
+    queue = [(source_id, [source_id])]
+    visited = {source_id}
+
+    while queue:
+        current, path = queue.pop(0)
+        if current == target_id:
+            return {"found": True, "path": path, "length": len(path) - 1}
+
+        for neighbor in adjacency.get(current, []):
+            if neighbor not in visited:
+                visited.add(neighbor)
+                queue.append((neighbor, path + [neighbor]))
+
+    return {"found": False, "path": [], "length": -1}
+
+
+@router.get("/tags")
+async def get_tags():
+    """Get tag frequency statistics."""
+    from collections import Counter
+
+    config = load_config()
+    graph = build_graph(config=config)
+
+    tag_counts = Counter()
+    for node in graph.nodes:
+        for tag in node.tags:
+            if tag and tag not in ['stub', 'needs-content']:  # Skip system tags
+                tag_counts[tag] += 1
+
+    # Get top 30 tags
+    top_tags = tag_counts.most_common(30)
+
+    return {
+        "total_tags": len(tag_counts),
+        "tags": [{"tag": tag, "count": count} for tag, count in top_tags]
     }

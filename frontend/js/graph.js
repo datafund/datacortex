@@ -12,6 +12,8 @@ class GraphView {
         this.width = 0;
         this.height = 0;
 
+        this.colorByCluster = false;
+
         this.colors = {
             types: {
                 zettel: '#10b981',
@@ -28,6 +30,9 @@ class GraphView {
                 datacore: '#84cc16'
             }
         };
+
+        // Color scale for clusters using d3.schemeCategory10
+        this.clusterColorScale = d3.scaleOrdinal(d3.schemeCategory10);
 
         this.setupSVG();
         this.setupZoom();
@@ -93,6 +98,21 @@ class GraphView {
             return;
         }
 
+        // Find top 10 hubs by degree
+        const sortedByDegree = [...nodes].sort((a, b) => b.degree - a.degree);
+        this.hubs = new Set(sortedByDegree.slice(0, 10).map(n => n.id));
+
+        // Build adjacency for hover highlighting
+        this.adjacency = new Map();
+        links.forEach(l => {
+            const sourceId = typeof l.source === 'object' ? l.source.id : l.source;
+            const targetId = typeof l.target === 'object' ? l.target.id : l.target;
+            if (!this.adjacency.has(sourceId)) this.adjacency.set(sourceId, new Set());
+            if (!this.adjacency.has(targetId)) this.adjacency.set(targetId, new Set());
+            this.adjacency.get(sourceId).add(targetId);
+            this.adjacency.get(targetId).add(sourceId);
+        });
+
         // Create simulation
         this.simulation = d3.forceSimulation(nodes)
             .force('link', d3.forceLink(links)
@@ -111,6 +131,9 @@ class GraphView {
             .attr('class', d => `link ${d.resolved ? '' : 'unresolved'}`)
             .attr('stroke-width', 1);
 
+        // Store references for hover highlighting
+        this.linkElements = link;
+
         // Render nodes
         const node = this.nodesGroup.selectAll('g')
             .data(nodes)
@@ -122,8 +145,9 @@ class GraphView {
         node.append('circle')
             .attr('r', d => this.nodeRadius(d))
             .attr('fill', d => this.nodeColor(d))
-            .attr('stroke', d => this.spaceColor(d.space))
-            .attr('stroke-width', 2);
+            .attr('stroke', d => this.hubs.has(d.id) ? '#ffd700' : this.spaceColor(d.space))
+            .attr('stroke-width', d => this.hubs.has(d.id) ? 3 : 2)
+            .classed('hub-node', d => this.hubs.has(d.id));
 
         // Node labels (for high-degree nodes)
         node.filter(d => d.degree >= 3)
@@ -134,10 +158,19 @@ class GraphView {
             .attr('font-size', '10px')
             .attr('fill', '#f1f5f9');
 
+        // Store references for hover highlighting
+        this.nodeElements = node;
+
         // Event handlers
         node
-            .on('mouseover', (event, d) => this.showTooltip(event, d))
-            .on('mouseout', () => this.hideTooltip())
+            .on('mouseover', (event, d) => {
+                this.showTooltip(event, d);
+                this.highlightConnected(d);
+            })
+            .on('mouseout', () => {
+                this.hideTooltip();
+                this.clearHoverHighlight();
+            })
             .on('click', (event, d) => {
                 event.stopPropagation();
                 this.app.selectNode(d);
@@ -168,6 +201,9 @@ class GraphView {
     }
 
     nodeColor(node) {
+        if (this.colorByCluster && node.cluster_id !== undefined) {
+            return this.clusterColorScale(node.cluster_id);
+        }
         return this.colors.types[node.type] || this.colors.types.unknown;
     }
 
@@ -203,6 +239,12 @@ class GraphView {
                 <div class="tooltip-row">
                     <span>Centrality:</span>
                     <span>${(node.centrality * 100).toFixed(1)}%</span>
+                </div>
+                ` : ''}
+                ${node.cluster_id !== undefined ? `
+                <div class="tooltip-row">
+                    <span>Cluster:</span>
+                    <span>${node.cluster_id}</span>
                 </div>
                 ` : ''}
             `);
@@ -249,5 +291,56 @@ class GraphView {
     clearHighlight() {
         this.nodesGroup.selectAll('circle').attr('opacity', 1);
         this.linksGroup.selectAll('line').attr('opacity', 0.5);
+    }
+
+    highlightConnected(node) {
+        // Get neighbors from adjacency map
+        const neighbors = this.adjacency.get(node.id) || new Set();
+        neighbors.add(node.id); // Include the hovered node itself
+
+        // Dim non-neighbor nodes
+        this.nodeElements.style('opacity', n => neighbors.has(n.id) ? 1 : 0.15);
+
+        // Dim non-connected links
+        this.linkElements.style('opacity', l => {
+            const sourceId = typeof l.source === 'object' ? l.source.id : l.source;
+            const targetId = typeof l.target === 'object' ? l.target.id : l.target;
+            return (sourceId === node.id || targetId === node.id) ? 1 : 0.1;
+        });
+    }
+
+    clearHoverHighlight() {
+        // Restore full opacity
+        this.nodeElements.style('opacity', 1);
+        this.linkElements.style('opacity', 0.6);
+    }
+
+    setColorByCluster(enabled) {
+        this.colorByCluster = enabled;
+        // Update existing node colors without full re-render
+        if (this.nodesGroup) {
+            this.nodesGroup.selectAll('circle')
+                .attr('fill', d => this.nodeColor(d));
+        }
+    }
+
+    highlightPath(pathIds) {
+        const pathSet = new Set(pathIds);
+
+        // Highlight path nodes
+        this.nodesGroup.selectAll('circle')
+            .style('opacity', d => pathSet.has(d.id) ? 1 : 0.15)
+            .attr('stroke', d => pathSet.has(d.id) ? '#00ff00' : d.space ? this.spaceColor(d.space) : 'none')
+            .attr('stroke-width', d => pathSet.has(d.id) ? 3 : 2);
+
+        // Highlight path edges
+        this.linksGroup.selectAll('line').style('opacity', l => {
+            const sourceId = typeof l.source === 'object' ? l.source.id : l.source;
+            const targetId = typeof l.target === 'object' ? l.target.id : l.target;
+            const sourceIdx = pathIds.indexOf(sourceId);
+            const targetIdx = pathIds.indexOf(targetId);
+            // Check if consecutive in path
+            return (Math.abs(sourceIdx - targetIdx) === 1) ? 1 : 0.1;
+        });
     }
 }

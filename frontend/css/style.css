@@ -140,6 +140,16 @@ body {
     border-radius: 50%;
 }
 
+.control-group input[type="checkbox"] {
+    accent-color: var(--accent);
+    cursor: pointer;
+}
+
+.control-group label:has(input[type="checkbox"]) {
+    cursor: pointer;
+    user-select: none;
+}
+
 /* Stats */
 #stats-content {
     font-size: 0.875rem;
@@ -157,6 +167,22 @@ body {
 
 #stats-content .stat-value {
     font-weight: 500;
+}
+
+/* Timeline slider */
+#timeline-container {
+    margin-bottom: 1rem;
+}
+
+#timeline-slider {
+    width: 100%;
+    margin-bottom: 0.5rem;
+}
+
+#timeline-label {
+    text-align: center;
+    font-size: 0.85rem;
+    color: var(--text-secondary);
 }
 
 /* Pulse list */
@@ -353,3 +379,56 @@ body {
 .space-personal { color: var(--space-personal); }
 .space-datafund { color: var(--space-datafund); }
 .space-datacore { color: var(--space-datacore); }
+
+/* Orphan list */
+.orphan-item {
+    padding: 0.5rem;
+    cursor: pointer;
+    border-bottom: 1px solid var(--border);
+    display: flex;
+    justify-content: space-between;
+}
+
+.orphan-item:hover {
+    background: var(--bg-tertiary);
+}
+
+.orphan-space {
+    font-size: 0.75rem;
+    color: var(--text-secondary);
+}
+
+/* Tag cloud */
+#tag-cloud {
+    line-height: 1.8;
+}
+
+.tag-item {
+    display: inline-block;
+    padding: 0.2rem 0.4rem;
+    margin: 0.1rem;
+    background: var(--bg-tertiary);
+    border-radius: 3px;
+    cursor: pointer;
+    transition: background 0.2s;
+}
+
+.tag-item:hover {
+    background: var(--accent);
+    color: white;
+}
+
+/* Hub node styling */
+.hub-node {
+    filter: drop-shadow(0 0 4px gold);
+}
+
+/* Optional: subtle pulse animation */
+@keyframes hub-pulse {
+    0%, 100% { filter: drop-shadow(0 0 4px gold); }
+    50% { filter: drop-shadow(0 0 8px gold); }
+}
+
+.hub-node {
+    animation: hub-pulse 2s ease-in-out infinite;
+}

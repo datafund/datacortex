@@ -122,3 +122,37 @@ async def get_neighbors(
         "count": len(neighbors),
         "neighbors": [n.model_dump(mode='json') for n in neighbors],
     }
+
+
+@router.post("/{node_id}/open")
+async def open_node(node_id: str):
+    """Open node file in system editor."""
+    import subprocess
+    import platform
+
+    config = load_config()
+    graph = build_graph(config=config)
+
+    # Find the node
+    target_node = None
+    for node in graph.nodes:
+        if node.id == node_id:
+            target_node = node
+            break
+
+    if not target_node:
+        raise HTTPException(status_code=404, detail="Node not found")
+
+    # Open with VS Code (cross-platform)
+    try:
+        subprocess.Popen(["code", target_node.path])
+        return {"status": "opened", "path": target_node.path}
+    except FileNotFoundError:
+        # Fallback to system default
+        if platform.system() == "Darwin":
+            subprocess.Popen(["open", target_node.path])
+        elif platform.system() == "Windows":
+            subprocess.Popen(["start", target_node.path], shell=True)
+        else:
+            subprocess.Popen(["xdg-open", target_node.path])
+        return {"status": "opened", "path": target_node.path}

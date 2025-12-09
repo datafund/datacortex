@@ -9,6 +9,7 @@ class Datacortex {
         this.graph = null;
         this.graphView = null;
         this.selectedNode = null;
+        this.pulses = [];
         this.filters = {
             spaces: new Set(),
             types: new Set(),
@@ -26,6 +27,7 @@ class Datacortex {
         // Load initial data
         await this.loadGraph();
         await this.loadPulses();
+        await this.loadTags();
 
         // Setup controls
         setupControls(this);
@@ -86,6 +88,9 @@ class Datacortex {
             const response = await fetch(`${API_BASE}/pulse`);
             const data = await response.json();
 
+            this.pulses = data.pulses;
+            this.updateTimelineSlider();
+
             const pulseList = document.getElementById('pulse-list');
             if (data.pulses.length === 0) {
                 pulseList.innerHTML = '<p class="text-secondary">No pulses yet</p>';
@@ -107,6 +112,30 @@ class Datacortex {
         } catch (error) {
             console.error('Failed to load pulses:', error);
         }
+    }
+
+    updateTimelineSlider() {
+        const slider = document.getElementById('timeline-slider');
+        const label = document.getElementById('timeline-label');
+
+        if (this.pulses.length === 0) {
+            slider.disabled = true;
+            label.textContent = 'No pulses';
+            return;
+        }
+
+        slider.disabled = false;
+        slider.max = this.pulses.length - 1;
+        slider.value = this.pulses.length - 1;  // Latest
+        label.textContent = this.pulses[slider.value].id;
+    }
+
+    async loadPulseByIndex(index) {
+        const pulse = this.pulses[index];
+        if (!pulse) return;
+
+        document.getElementById('timeline-label').textContent = pulse.id;
+        await this.loadPulse(pulse.id);
     }
 
     async loadPulse(pulseId) {
@@ -219,16 +248,116 @@ class Datacortex {
         `).join('');
     }
 
+    async loadOrphans() {
+        try {
+            const response = await fetch(`${API_BASE}/graph/orphans`);
+            const data = await response.json();
+
+            document.getElementById('orphan-count').textContent = `(${data.count})`;
+
+            const list = document.getElementById('orphan-list');
+            if (data.count === 0) {
+                list.innerHTML = '<p class="text-secondary">No orphans found!</p>';
+            } else {
+                list.innerHTML = data.orphans.map(n => `
+                    <div class="orphan-item" data-node-id="${n.id}">
+                        <span class="orphan-title">${n.title}</span>
+                        <span class="orphan-space">${n.space}</span>
+                    </div>
+                `).join('');
+
+                // Add click handlers to select nodes
+                list.querySelectorAll('.orphan-item').forEach(item => {
+                    item.addEventListener('click', () => {
+                        const node = data.orphans.find(n => n.id === item.dataset.nodeId);
+                        if (node) this.selectNode(node);
+                    });
+                });
+            }
+        } catch (error) {
+            console.error('Failed to load orphans:', error);
+        }
+    }
+
     selectNode(node) {
         this.selectedNode = node;
         showNodeDetails(node, this);
     }
 
-    openNode(node) {
-        // Open file in system - this would need backend support
-        // For now, just log the path
-        console.log('Opening:', node.path);
-        alert(`File path:\n${node.path}\n\nCopy this path to open in your editor.`);
+    async openNode(node) {
+        // Open file in system editor via API
+        try {
+            const response = await fetch(`${API_BASE}/nodes/${encodeURIComponent(node.id)}/open`, {
+                method: 'POST'
+            });
+
+            if (!response.ok) {
+                throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+            }
+
+            const data = await response.json();
+            console.log('File opened:', data.path);
+
+            // Show brief success notification
+            const notification = document.createElement('div');
+            notification.textContent = 'Opening file...';
+            notification.style.cssText = 'position: fixed; top: 20px; right: 20px; background: var(--bg-secondary); padding: 12px 20px; border-radius: 6px; box-shadow: 0 2px 8px rgba(0,0,0,0.2); z-index: 1000;';
+            document.body.appendChild(notification);
+            setTimeout(() => notification.remove(), 2000);
+
+        } catch (error) {
+            console.error('Failed to open file:', error);
+            alert(`Failed to open file:\n${error.message}\n\nPath: ${node.path}`);
+        }
+    }
+
+    async findPath(sourceId, targetId) {
+        try {
+            const response = await fetch(`${API_BASE}/graph/path/${sourceId}/${targetId}`);
+            const data = await response.json();
+
+            const result = document.getElementById('path-result');
+            if (!data.found) {
+                result.textContent = 'No path found';
+                return;
+            }
+
+            result.textContent = `Path length: ${data.length}`;
+            this.graphView.highlightPath(data.path);
+        } catch (error) {
+            console.error('Failed to find path:', error);
+        }
+    }
+
+    async loadTags() {
+        try {
+            const response = await fetch(`${API_BASE}/graph/tags`);
+            const data = await response.json();
+
+            const cloud = document.getElementById('tag-cloud');
+            const maxCount = Math.max(...data.tags.map(t => t.count));
+
+            cloud.innerHTML = data.tags.map(t => {
+                // Scale font size based on frequency
+                const size = 0.7 + (t.count / maxCount) * 0.8;
+                return `<span class="tag-item" data-tag="${t.tag}" style="font-size: ${size}rem">${t.tag} (${t.count})</span>`;
+            }).join(' ');
+
+            // Add click handlers
+            cloud.querySelectorAll('.tag-item').forEach(item => {
+                item.addEventListener('click', () => {
+                    this.filterByTag(item.dataset.tag);
+                });
+            });
+        } catch (error) {
+            console.error('Failed to load tags:', error);
+        }
+    }
+
+    filterByTag(tag) {
+        this.filters.searchQuery = tag;
+        document.getElementById('search').value = tag;
+        this.loadGraph();
     }
 }
 
