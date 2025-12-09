@@ -12,7 +12,7 @@ class Datacortex {
         this.filters = {
             spaces: new Set(),
             types: new Set(),
-            minDegree: 0,
+            minDegree: 1,
             searchQuery: ''
         };
 
