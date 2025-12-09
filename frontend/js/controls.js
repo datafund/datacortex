@@ -162,6 +162,38 @@ function setupControls(app) {
         }
     });
 
+    // Node size slider
+    const nodeSizeSlider = document.getElementById('node-size');
+    const nodeSizeValue = document.getElementById('node-size-value');
+
+    nodeSizeSlider.addEventListener('input', () => {
+        nodeSizeValue.textContent = nodeSizeSlider.value;
+    });
+
+    nodeSizeSlider.addEventListener('change', () => {
+        app.graphView.setNodeSize(parseFloat(nodeSizeSlider.value));
+    });
+
+    // Font size slider
+    const fontSizeSlider = document.getElementById('font-size');
+    const fontSizeValue = document.getElementById('font-size-value');
+
+    fontSizeSlider.addEventListener('input', () => {
+        fontSizeValue.textContent = fontSizeSlider.value;
+    });
+
+    fontSizeSlider.addEventListener('change', () => {
+        app.graphView.setFontSize(parseInt(fontSizeSlider.value));
+    });
+
+    // Minimap toggle
+    document.getElementById('minimap-enabled').addEventListener('change', (e) => {
+        const minimap = document.getElementById('minimap');
+        if (minimap) {
+            minimap.style.display = e.target.checked ? 'block' : 'none';
+        }
+    });
+
     // Keyboard shortcuts
     document.addEventListener('keydown', (e) => {
         // Escape to close details panel

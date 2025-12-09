@@ -432,6 +432,20 @@ body {
     color: white;
 }
 
+/* Minimap */
+#minimap {
+    position: absolute;
+    bottom: 20px;
+    right: 20px;
+    border-radius: 4px;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.3);
+    cursor: pointer;
+}
+
+.minimap-viewport {
+    pointer-events: none;
+}
+
 /* Hub node styling */
 .hub-node {
     filter: drop-shadow(0 0 4px gold);

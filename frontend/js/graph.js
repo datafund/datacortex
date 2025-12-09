@@ -13,6 +13,8 @@ class GraphView {
         this.height = 0;
 
         this.colorByCluster = false;
+        this.labelFontSize = 10;
+        this.nodeSizeMultiplier = 1.0;
 
         this.colors = {
             types: {
@@ -37,6 +39,7 @@ class GraphView {
         this.setupSVG();
         this.setupZoom();
         this.setupTooltip();
+        this.setupMinimap();
 
         // Handle resize
         window.addEventListener('resize', () => this.resize());
@@ -74,6 +77,7 @@ class GraphView {
             .on('zoom', (event) => {
                 this.mainGroup.attr('transform', event.transform);
                 this.currentTransform = event.transform;
+                this.updateMinimapViewport();
             });
 
         this.svg.call(this.zoom);
@@ -166,6 +170,145 @@ class GraphView {
         this.tooltip = d3.select('#tooltip');
     }
 
+    setupMinimap() {
+        this.minimapWidth = 150;
+        this.minimapHeight = 100;
+
+        // Create minimap container
+        this.minimapSvg = d3.select('#graph-container')
+            .append('svg')
+            .attr('id', 'minimap')
+            .attr('width', this.minimapWidth)
+            .attr('height', this.minimapHeight);
+
+        // Background
+        this.minimapSvg.append('rect')
+            .attr('width', this.minimapWidth)
+            .attr('height', this.minimapHeight)
+            .attr('fill', 'var(--bg-secondary)')
+            .attr('stroke', 'var(--border)')
+            .attr('stroke-width', 1);
+
+        // Graph content group
+        this.minimapContent = this.minimapSvg.append('g').attr('class', 'minimap-content');
+
+        // Viewport indicator
+        this.minimapViewport = this.minimapSvg.append('rect')
+            .attr('class', 'minimap-viewport')
+            .attr('fill', 'rgba(16, 185, 129, 0.2)')
+            .attr('stroke', 'var(--accent)')
+            .attr('stroke-width', 1);
+
+        // Make minimap draggable to pan main view
+        this.minimapSvg.on('click', (event) => {
+            if (!this.minimapScale) return;
+            const [mx, my] = d3.pointer(event);
+            const x = (mx - this.minimapWidth / 2) / this.minimapScale;
+            const y = (my - this.minimapHeight / 2) / this.minimapScale;
+
+            const transform = d3.zoomIdentity
+                .translate(this.width / 2 - x, this.height / 2 - y)
+                .scale(this.currentTransform?.k || 1);
+
+            this.svg.transition().duration(300).call(this.zoom.transform, transform);
+        });
+    }
+
+    updateMinimap() {
+        if (!this.simulation || !this.simulation.nodes()) return;
+
+        const nodes = this.simulation.nodes();
+        if (nodes.length === 0) return;
+
+        // Calculate bounds
+        let minX = Infinity, maxX = -Infinity;
+        let minY = Infinity, maxY = -Infinity;
+
+        nodes.forEach(n => {
+            minX = Math.min(minX, n.x);
+            maxX = Math.max(maxX, n.x);
+            minY = Math.min(minY, n.y);
+            maxY = Math.max(maxY, n.y);
+        });
+
+        const padding = 20;
+        const graphWidth = maxX - minX + padding * 2;
+        const graphHeight = maxY - minY + padding * 2;
+
+        // Calculate scale to fit graph in minimap
+        this.minimapScale = Math.min(
+            this.minimapWidth / graphWidth,
+            this.minimapHeight / graphHeight
+        ) * 0.9;
+
+        const centerX = (minX + maxX) / 2;
+        const centerY = (minY + maxY) / 2;
+
+        // Update minimap content
+        this.minimapContent.attr('transform',
+            `translate(${this.minimapWidth / 2}, ${this.minimapHeight / 2}) scale(${this.minimapScale}) translate(${-centerX}, ${-centerY})`
+        );
+
+        // Render nodes in minimap
+        const minimapNodes = this.minimapContent.selectAll('circle')
+            .data(nodes, d => d.id);
+
+        minimapNodes.enter()
+            .append('circle')
+            .attr('r', 2)
+            .attr('fill', d => this.nodeColor(d))
+            .merge(minimapNodes)
+            .attr('cx', d => d.x)
+            .attr('cy', d => d.y);
+
+        minimapNodes.exit().remove();
+
+        // Update viewport indicator
+        this.updateMinimapViewport();
+    }
+
+    updateMinimapViewport() {
+        if (!this.minimapScale) return;
+
+        const transform = this.currentTransform || d3.zoomIdentity;
+        const scale = transform.k;
+
+        // Viewport size in graph coordinates
+        const viewWidth = this.width / scale;
+        const viewHeight = this.height / scale;
+
+        // Viewport center in graph coordinates
+        const viewCenterX = (this.width / 2 - transform.x) / scale;
+        const viewCenterY = (this.height / 2 - transform.y) / scale;
+
+        // Get graph center (same as in updateMinimap)
+        const nodes = this.simulation?.nodes() || [];
+        if (nodes.length === 0) return;
+
+        let minX = Infinity, maxX = -Infinity;
+        let minY = Infinity, maxY = -Infinity;
+        nodes.forEach(n => {
+            minX = Math.min(minX, n.x);
+            maxX = Math.max(maxX, n.x);
+            minY = Math.min(minY, n.y);
+            maxY = Math.max(maxY, n.y);
+        });
+        const centerX = (minX + maxX) / 2;
+        const centerY = (minY + maxY) / 2;
+
+        // Convert to minimap coordinates
+        const mmX = this.minimapWidth / 2 + (viewCenterX - centerX) * this.minimapScale - (viewWidth * this.minimapScale) / 2;
+        const mmY = this.minimapHeight / 2 + (viewCenterY - centerY) * this.minimapScale - (viewHeight * this.minimapScale) / 2;
+        const mmW = viewWidth * this.minimapScale;
+        const mmH = viewHeight * this.minimapScale;
+
+        this.minimapViewport
+            .attr('x', mmX)
+            .attr('y', mmY)
+            .attr('width', Math.max(10, mmW))
+            .attr('height', Math.max(10, mmH));
+    }
+
     render(data) {
         const { nodes, links } = data;
 
@@ -234,7 +377,7 @@ class GraphView {
             .text(d => this.truncate(d.title, 20))
             .attr('dx', d => this.nodeRadius(d) + 4)
             .attr('dy', 4)
-            .attr('font-size', '10px')
+            .attr('font-size', `${this.labelFontSize}px`)
             .attr('fill', '#f1f5f9');
 
         // Store references for hover highlighting
@@ -269,6 +412,18 @@ class GraphView {
                 .attr('y2', d => d.target.y);
 
             node.attr('transform', d => `translate(${d.x},${d.y})`);
+
+            // Update minimap periodically (every 10 ticks for performance)
+            if (!this._tickCount) this._tickCount = 0;
+            this._tickCount++;
+            if (this._tickCount % 10 === 0) {
+                this.updateMinimap();
+            }
+        });
+
+        // Final minimap update when simulation settles
+        this.simulation.on('end', () => {
+            this.updateMinimap();
         });
     }
 
@@ -276,7 +431,28 @@ class GraphView {
         // Scale by degree with sqrt for better visual balance
         const base = 5;
         const scale = 2;
-        return base + Math.sqrt(node.degree || 0) * scale;
+        return (base + Math.sqrt(node.degree || 0) * scale) * this.nodeSizeMultiplier;
+    }
+
+    setNodeSize(multiplier) {
+        this.nodeSizeMultiplier = multiplier;
+        // Update existing nodes
+        if (this.nodesGroup) {
+            this.nodesGroup.selectAll('circle')
+                .attr('r', d => this.nodeRadius(d));
+            // Update labels position
+            this.nodesGroup.selectAll('text')
+                .attr('dx', d => this.nodeRadius(d) + 4);
+        }
+    }
+
+    setFontSize(size) {
+        this.labelFontSize = size;
+        // Update existing labels
+        if (this.nodesGroup) {
+            this.nodesGroup.selectAll('text')
+                .attr('font-size', `${size}px`);
+        }
     }
 
     nodeColor(node) {
