@@ -1,0 +1,33 @@
+# Datacortex Configuration
+# Override in datacortex.local.yaml (gitignored)
+
+# Datacore root directory
+datacore_root: ~/Data
+
+# Spaces to include in graph
+spaces:
+  - personal
+  - datafund
+
+# Server settings
+server:
+  host: "127.0.0.1"
+  port: 8765
+
+# Pulse settings
+pulse:
+  directory: pulses
+  schedule: manual  # daily, weekly, manual
+
+# Graph generation settings
+graph:
+  include_stubs: true
+  include_unresolved: true
+  min_degree: 0
+  compute_centrality: true
+  compute_clusters: true
+
+# Visualization defaults
+visualization:
+  node_size_metric: degree  # degree, centrality
+  color_by: type  # type, space, cluster
