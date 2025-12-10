@@ -1,0 +1,29 @@
+name: datacortex
+version: 0.1.0
+description: Knowledge graph visualization for Datacore
+author: datafund
+repository: https://github.com/datafund/datacortex
+
+# Dependencies on other modules (none currently)
+dependencies: []
+
+# What this module provides
+provides:
+  commands:
+    - datacortex   # Enables /datacortex command
+
+# Python package info
+python:
+  package: datacortex
+  entry_point: datacortex.cli.commands:cli
+  install: pip install -e .
+
+# Configuration files
+config:
+  base: config/datacortex.yaml
+  local: config/datacortex.local.yaml  # gitignored
+
+# Documentation
+docs:
+  readme: README.md
+  claude: CLAUDE.base.md

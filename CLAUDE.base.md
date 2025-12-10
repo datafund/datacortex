@@ -75,3 +75,37 @@ D3.js force-directed graph with:
 - Node click for details
 - Filter controls (space, type, degree)
 - Timeline slider for pulse history
+- Minimap with viewport indicator
+- Physics toggle and graph controls
+
+## Module Integration
+
+This module follows the Datacore module pattern:
+- `module.yaml` - Module manifest
+- `CLAUDE.base.md` - PUBLIC layer (this file)
+- `CLAUDE.space.md` - SPACE layer (gitignored, for space-specific notes)
+- `CLAUDE.local.md` - PRIVATE layer (gitignored, for personal notes)
+- `commands/datacortex.md` - Slash command definition
+
+### Installation as Module
+
+```bash
+# Symlink into modules directory
+cd ~/Data/.datacore/modules
+ln -s ~/Data/1-datafund/2-projects/datacortex datacortex
+
+# Or clone directly
+git clone https://github.com/datafund/datacortex.git
+```
+
+### Python Installation
+
+```bash
+cd ~/Data/1-datafund/2-projects/datacortex
+pip install -e .
+```
+
+## Related Documentation
+
+- [Datacore Module Specification](https://github.com/datafund/datacore/blob/main/.datacore/specs/datacore-specification.md#modules)
+- [DIP-0002: Layered Context Pattern](https://github.com/datafund/datacore/blob/main/.datacore/dips/DIP-0002-layered-context-pattern.md)
