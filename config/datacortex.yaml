@@ -31,3 +31,24 @@ graph:
 visualization:
   node_size_metric: degree  # degree, centrality
   color_by: type  # type, space, cluster
+
+# AI settings
+ai:
+  # === Embeddings ===
+  # Local embedding model (sentence-transformers)
+  embedding_model: sentence-transformers/all-mpnet-base-v2
+
+  # Content to embed: title + first N chars of content
+  content_length: 500
+
+  # Batch size for embedding computation
+  batch_size: 32
+
+  # === Q&A Synthesis ===
+  # LLM for answering questions (when running standalone, not in Claude Code)
+  # Options: claude-3-haiku-20240307, claude-3-5-sonnet-20241022, claude-sonnet-4-20250514
+  qa_model: claude-3-haiku-20240307
+
+  # API key from env: ANTHROPIC_API_KEY or .datacore/env/anthropic.env
+  # Max tokens for answer generation
+  qa_max_tokens: 1024

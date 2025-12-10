@@ -154,6 +154,61 @@ def spaces():
     click.echo()
 
 
+@cli.command()
+@click.option('--space', '-s', help='Compute for specific space (default: all spaces)')
+@click.option('--force', is_flag=True, help='Force recompute all embeddings (ignore cache)')
+def embed(space: Optional[str], force: bool):
+    """Compute embeddings for documents."""
+    import time
+    from ..ai.embeddings import compute_embeddings_for_space
+
+    if space:
+        spaces_to_process = [space]
+    else:
+        spaces_to_process = get_available_spaces()
+
+    if not spaces_to_process:
+        click.echo("No spaces with knowledge databases found.")
+        return
+
+    click.echo(f"\n{'='*50}")
+    click.echo(f"  DATACORTEX EMBEDDING COMPUTATION")
+    click.echo(f"{'='*50}")
+    click.echo(f"  Model: sentence-transformers/all-mpnet-base-v2")
+    click.echo(f"  Spaces: {', '.join(spaces_to_process)}")
+    click.echo(f"  Mode: {'FORCE RECOMPUTE' if force else 'INCREMENTAL (cache enabled)'}")
+    click.echo(f"{'='*50}\n")
+
+    total_start = time.time()
+    total_docs = 0
+
+    for space_name in spaces_to_process:
+        click.echo(f"Processing space: {space_name}")
+
+        start = time.time()
+        embeddings = compute_embeddings_for_space(space_name, force=force)
+        elapsed = time.time() - start
+
+        total_docs += len(embeddings)
+
+        click.echo(f"  Completed: {len(embeddings)} documents in {elapsed:.2f}s")
+        if embeddings:
+            click.echo(f"  Speed: {len(embeddings)/elapsed:.1f} docs/sec\n")
+        else:
+            click.echo()
+
+    total_elapsed = time.time() - total_start
+
+    click.echo(f"{'='*50}")
+    click.echo(f"  SUMMARY")
+    click.echo(f"{'='*50}")
+    click.echo(f"  Total documents: {total_docs}")
+    click.echo(f"  Total time: {total_elapsed:.2f}s")
+    if total_docs > 0:
+        click.echo(f"  Average speed: {total_docs/total_elapsed:.1f} docs/sec")
+    click.echo(f"{'='*50}\n")
+
+
 @cli.group()
 def pulse():
     """Pulse snapshot commands."""
@@ -229,6 +284,221 @@ def serve(host: str, port: int, reload: bool, open_browser: bool):
         port=port,
         reload=reload,
     )
+
+
+@cli.command()
+@click.option('--space', '-s', help='Generate for specific space (default: all spaces)')
+@click.option('--threshold', '-t', default=0.75, help='Similarity threshold (default: 0.75)')
+@click.option('--top-n', '-n', default=20, help='Number of top suggestions (default: 20)')
+@click.option('--min-words', '-w', default=50, help='Minimum words for orphans (default: 50)')
+def digest(space: Optional[str], threshold: float, top_n: int, min_words: int):
+    """Generate daily digest of link suggestions."""
+    from datetime import datetime
+    from ..digest.generator import generate_digest
+    from ..digest.formatter import format_digest
+
+    config = load_config()
+
+    if space:
+        spaces_to_process = [space]
+    else:
+        spaces_to_process = get_available_spaces()
+
+    if not spaces_to_process:
+        click.echo("No spaces with knowledge databases found.")
+        return
+
+    click.echo(f"\n{'='*50}", err=True)
+    click.echo(f"  DATACORTEX DAILY DIGEST", err=True)
+    click.echo(f"{'='*50}", err=True)
+    click.echo(f"  Spaces: {', '.join(spaces_to_process)}", err=True)
+    click.echo(f"  Threshold: {threshold}", err=True)
+    click.echo(f"  Top N: {top_n}", err=True)
+    click.echo(f"{'='*50}\n", err=True)
+
+    # Generate digest
+    result = generate_digest(
+        spaces=spaces_to_process,
+        threshold=threshold,
+        top_n=top_n,
+        min_orphan_words=min_words
+    )
+
+    # Format as compact TSV/markdown
+    formatted = format_digest(result)
+
+    # Write to temp file
+    timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
+    output_path = Path(f"/tmp/datacortex_digest_{timestamp}.txt")
+    output_path.write_text(formatted)
+
+    click.echo(f"Digest written to: {output_path}", err=True)
+    click.echo(formatted)
+
+
+@cli.command()
+@click.option('--space', '-s', help='Detect gaps for specific space (default: all spaces)')
+@click.option('--min-score', '-m', default=0.3, help='Minimum gap score threshold (default: 0.3)')
+def gaps(space: Optional[str], min_score: float):
+    """Detect knowledge gaps between clusters."""
+    from datetime import datetime
+    from ..gaps.detector import detect_gaps
+    from ..gaps.formatter import format_gaps
+
+    config = load_config()
+
+    if space:
+        spaces_to_process = [space]
+    else:
+        spaces_to_process = get_available_spaces()
+
+    if not spaces_to_process:
+        click.echo("No spaces with knowledge databases found.")
+        return
+
+    click.echo(f"\n{'='*50}", err=True)
+    click.echo(f"  DATACORTEX KNOWLEDGE GAPS", err=True)
+    click.echo(f"{'='*50}", err=True)
+    click.echo(f"  Spaces: {', '.join(spaces_to_process)}", err=True)
+    click.echo(f"  Min Gap Score: {min_score}", err=True)
+    click.echo(f"{'='*50}\n", err=True)
+
+    # Detect gaps
+    result = detect_gaps(
+        spaces=spaces_to_process,
+        min_gap_score=min_score
+    )
+
+    # Format as compact TSV/markdown
+    formatted = format_gaps(result)
+
+    # Write to temp file
+    timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
+    output_path = Path(f"/tmp/datacortex_gaps_{timestamp}.txt")
+    output_path.write_text(formatted)
+
+    click.echo(f"\nGaps analysis written to: {output_path}", err=True)
+    click.echo(formatted)
+
+
+@cli.command()
+@click.option('--space', '-s', help='Analyze specific space (default: all spaces)')
+@click.option('--cluster', '-c', type=int, help='Analyze single cluster by ID')
+@click.option('--no-samples', is_flag=True, help='Skip content samples')
+@click.option('--top', '-t', type=int, help='Only top N clusters by size')
+def insights(space: Optional[str], cluster: Optional[int], no_samples: bool, top: Optional[int]):
+    """Analyze knowledge clusters and synthesize insights."""
+    from datetime import datetime
+    from ..insights.analyzer import analyze_clusters, analyze_single_cluster
+    from ..insights.formatter import format_insights, format_cluster_summary
+
+    config = load_config()
+
+    if space:
+        spaces_to_process = [space]
+    else:
+        spaces_to_process = get_available_spaces()
+
+    if not spaces_to_process:
+        click.echo("No spaces with knowledge databases found.")
+        return
+
+    click.echo(f"\n{'='*50}", err=True)
+    click.echo(f"  DATACORTEX CLUSTER INSIGHTS", err=True)
+    click.echo(f"{'='*50}", err=True)
+    click.echo(f"  Spaces: {', '.join(spaces_to_process)}", err=True)
+
+    if cluster is not None:
+        click.echo(f"  Mode: Single cluster ({cluster})", err=True)
+    else:
+        click.echo(f"  Mode: All clusters", err=True)
+        if top:
+            click.echo(f"  Limit: Top {top} by size", err=True)
+
+    click.echo(f"{'='*50}\n", err=True)
+
+    # Analyze
+    if cluster is not None:
+        # Single cluster analysis
+        analysis = analyze_single_cluster(cluster, spaces_to_process)
+        from ..insights.analyzer import InsightsResult
+        result = InsightsResult(
+            clusters=[analysis],
+            total_docs=0,  # Not computed for single cluster
+            total_clusters=1,
+            generated_at=datetime.now().isoformat()
+        )
+    else:
+        # All clusters
+        result = analyze_clusters(spaces_to_process)
+
+        # Apply top N filter
+        if top and top < len(result.clusters):
+            result.clusters = result.clusters[:top]
+
+    # Format
+    include_samples = not no_samples
+    formatted = format_insights(result, include_samples=include_samples)
+
+    # Write to temp file
+    timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
+    output_path = Path(f"/tmp/datacortex_insights_{timestamp}.txt")
+    output_path.write_text(formatted)
+
+    click.echo(f"\nInsights written to: {output_path}", err=True)
+    click.echo(formatted)
+
+
+@cli.command()
+@click.argument('query')
+@click.option('--space', '-s', multiple=True, help='Spaces to search (can specify multiple)')
+@click.option('--top', '-t', default=5, help='Number of results (default: 5)')
+@click.option('--no-expand', is_flag=True, help='Skip graph expansion')
+def search(query: str, space: tuple[str], top: int, no_expand: bool):
+    """Search knowledge base using RAG retrieval."""
+    from datetime import datetime
+    from ..qa.retriever import search as do_search
+    from ..qa.formatter import format_search_results
+
+    config = load_config()
+
+    # Determine spaces
+    if space:
+        spaces_to_search = list(space)
+    else:
+        spaces_to_search = get_available_spaces()
+
+    if not spaces_to_search:
+        click.echo("No spaces with knowledge databases found.")
+        return
+
+    click.echo(f"\n{'='*50}", err=True)
+    click.echo(f"  DATACORTEX SEARCH", err=True)
+    click.echo(f"{'='*50}", err=True)
+    click.echo(f'  Query: "{query}"', err=True)
+    click.echo(f"  Spaces: {', '.join(spaces_to_search)}", err=True)
+    click.echo(f"  Top: {top}", err=True)
+    click.echo(f"  Expand: {not no_expand}", err=True)
+    click.echo(f"{'='*50}\n", err=True)
+
+    # Search
+    results = do_search(
+        query=query,
+        spaces=spaces_to_search,
+        top_k=top,
+        expand=not no_expand
+    )
+
+    # Format
+    formatted = format_search_results(results)
+
+    # Write to temp file
+    timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
+    output_path = Path(f"/tmp/datacortex_search_{timestamp}.txt")
+    output_path.write_text(formatted)
+
+    click.echo(f"Search results written to: {output_path}", err=True)
+    click.echo(f"\n{output_path}")
 
 
 if __name__ == '__main__':

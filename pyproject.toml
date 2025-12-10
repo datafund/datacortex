@@ -21,6 +21,8 @@ dependencies = [
     "python-louvain>=0.16",
     "pyyaml>=6.0",
     "click>=8.1.0",
+    "sentence-transformers>=2.2.0",
+    "numpy>=1.24.0",
 ]
 
 [project.optional-dependencies]
