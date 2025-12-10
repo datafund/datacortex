@@ -450,6 +450,132 @@ def insights(space: Optional[str], cluster: Optional[int], no_samples: bool, top
 
 
 @cli.command()
+@click.option('--space', '-s', help='Analyze specific space (default: all spaces)')
+@click.option('--top', '-t', default=15, help='Number of opportunities per category (default: 15)')
+def opportunities(space: Optional[str], top: int):
+    """Find low-hanging fruit research opportunities."""
+    from datetime import datetime
+    from ..indexer.graph_builder import build_graph
+
+    config = load_config()
+
+    if space:
+        spaces_to_process = [space]
+    else:
+        spaces_to_process = get_available_spaces()
+
+    if not spaces_to_process:
+        click.echo("No spaces with knowledge databases found.")
+        return
+
+    click.echo(f"\n{'='*50}", err=True)
+    click.echo(f"  DATACORTEX OPPORTUNITIES", err=True)
+    click.echo(f"{'='*50}", err=True)
+    click.echo(f"  Spaces: {', '.join(spaces_to_process)}", err=True)
+    click.echo(f"  Top per category: {top}", err=True)
+    click.echo(f"{'='*50}\n", err=True)
+
+    # Build graph
+    graph = build_graph(spaces=spaces_to_process, config=config)
+
+    output_lines = []
+    output_lines.append(f"# OPPORTUNITIES generated={datetime.now().isoformat()}")
+    output_lines.append(f"spaces: {', '.join(spaces_to_process)}")
+    output_lines.append("")
+
+    # 1. HIGH-VALUE STUBS: stubs with high centrality (many references)
+    stubs = [n for n in graph.nodes if n.is_stub and n.degree > 0]
+    stubs.sort(key=lambda n: (-n.degree, n.title))
+
+    output_lines.append("## HIGH_VALUE_STUBS")
+    output_lines.append("# Stub notes with many references but no content")
+    output_lines.append("# title | references | centrality | tags")
+    output_lines.append("")
+
+    for node in stubs[:top]:
+        tags = ', '.join(node.tags[:5]) if node.tags else 'none'
+        output_lines.append(f"{node.title} | {node.degree} refs | {node.centrality:.3f} | {tags}")
+
+    output_lines.append("")
+
+    # 2. ORPHANS WITH CONTENT: documents with real content but no connections
+    orphans = [n for n in graph.nodes if n.degree == 0 and n.word_count >= 100 and not n.is_stub]
+    orphans.sort(key=lambda n: (-n.word_count, n.title))
+
+    output_lines.append("## INTEGRATION_CANDIDATES")
+    output_lines.append("# Documents with content but no links (orphans worth connecting)")
+    output_lines.append("# title | words | type | path")
+    output_lines.append("")
+
+    for node in orphans[:top]:
+        output_lines.append(f"{node.title} | {node.word_count}w | {node.type.value} | {node.path}")
+
+    output_lines.append("")
+
+    # 3. LOW-DEGREE HIGH-CONTENT: substantial docs with few connections
+    underlinked = [n for n in graph.nodes if 1 <= n.degree <= 2 and n.word_count >= 300 and not n.is_stub]
+    underlinked.sort(key=lambda n: (-n.word_count, n.degree))
+
+    output_lines.append("## UNDERLINKED_CONTENT")
+    output_lines.append("# Substantial documents (300+ words) with only 1-2 links")
+    output_lines.append("# title | words | links | type")
+    output_lines.append("")
+
+    for node in underlinked[:top]:
+        output_lines.append(f"{node.title} | {node.word_count}w | {node.degree} links | {node.type.value}")
+
+    output_lines.append("")
+
+    # 4. CLUSTER INFO: count clusters and suggest gaps analysis
+    clusters = {}
+    for node in graph.nodes:
+        if node.cluster_id is not None:
+            if node.cluster_id not in clusters:
+                clusters[node.cluster_id] = []
+            clusters[node.cluster_id].append(node)
+
+    # Find clusters with many stubs (indicates topics needing research)
+    stub_heavy_clusters = []
+    for cluster_id, nodes in clusters.items():
+        stub_count = sum(1 for n in nodes if n.is_stub)
+        total = len(nodes)
+        if total >= 5 and stub_count >= 3:
+            stub_ratio = stub_count / total
+            stub_heavy_clusters.append((cluster_id, total, stub_count, stub_ratio))
+
+    stub_heavy_clusters.sort(key=lambda x: (-x[2], -x[3]))
+
+    output_lines.append("## STUB_HEAVY_CLUSTERS")
+    output_lines.append("# Clusters with many stubs (topic areas needing research)")
+    output_lines.append("# cluster_id | total_nodes | stub_count | stub_ratio | sample_titles")
+    output_lines.append("")
+
+    for cluster_id, total, stub_count, stub_ratio in stub_heavy_clusters[:top]:
+        cluster_nodes = clusters[cluster_id]
+        sample_titles = [n.title for n in cluster_nodes[:3]]
+        output_lines.append(f"Cluster {cluster_id} | {total} nodes | {stub_count} stubs | {stub_ratio:.0%} | {'; '.join(sample_titles)}")
+
+    output_lines.append("")
+
+    # Summary stats
+    output_lines.append("## SUMMARY")
+    output_lines.append(f"high_value_stubs: {len(stubs)}")
+    output_lines.append(f"integration_candidates: {len(orphans)}")
+    output_lines.append(f"underlinked_content: {len(underlinked)}")
+    output_lines.append(f"stub_heavy_clusters: {len(stub_heavy_clusters)}")
+
+    formatted = '\n'.join(output_lines)
+
+    # Write to temp file
+    timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
+    output_path = Path(f"/tmp/datacortex_opportunities_{timestamp}.txt")
+    output_path.write_text(formatted)
+
+    click.echo(f"\nOpportunities written to: {output_path}", err=True)
+    click.echo(formatted)
+
+
+@cli.command()
 @click.argument('query')
 @click.option('--space', '-s', multiple=True, help='Spaces to search (can specify multiple)')
 @click.option('--top', '-t', default=5, help='Number of results (default: 5)')
