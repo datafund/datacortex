@@ -39,6 +39,11 @@ htmlcov/
 # Local config
 config/datacortex.local.yaml
 
+# Layered context files (DIP-0002)
+CLAUDE.md
+CLAUDE.space.md
+CLAUDE.local.md
+
 # Pulses (generated data)
 pulses/*.json
 pulses/*.yaml
