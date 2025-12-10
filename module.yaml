@@ -4,13 +4,25 @@ description: Knowledge graph visualization for Datacore
 author: datafund
 repository: https://github.com/datafund/datacortex
 
-# Dependencies on other modules (none currently)
 dependencies: []
 
-# What this module provides
 provides:
   commands:
-    - datacortex   # Enables /datacortex command
+    - datacortex   # Conversational entry point
+
+# Settings (user can override in settings.local.yaml under datacortex:)
+settings:
+  auto_serve: false           # Auto-start server on /datacortex
+  default_space: null         # Default space to visualize (null = ask user)
+  open_browser: true          # Open browser when server starts
+  port: 8765
+
+# Use cases (for discoverability)
+use_cases:
+  - Visualize knowledge graph connections
+  - Find orphan notes (unlinked documents)
+  - Track graph evolution over time
+  - Identify knowledge clusters
 
 # Python package info
 python:
@@ -22,6 +34,12 @@ python:
 config:
   base: config/datacortex.yaml
   local: config/datacortex.local.yaml  # gitignored
+
+# Installation hooks
+hooks:
+  post_install: |
+    echo "Datacortex installed."
+    echo "Run /datacortex to start exploring your knowledge graph."
 
 # Documentation
 docs:
