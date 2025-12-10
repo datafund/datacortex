@@ -6,7 +6,7 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
 
-from .routes import graph, nodes, pulse
+from .routes import graph, nodes, pulse, files, terminal
 
 app = FastAPI(
     title="Datacortex",
@@ -28,6 +28,8 @@ app.add_middleware(
 app.include_router(graph.router, prefix="/api/graph", tags=["graph"])
 app.include_router(pulse.router, prefix="/api/pulse", tags=["pulse"])
 app.include_router(nodes.router, prefix="/api/nodes", tags=["nodes"])
+app.include_router(files.router, prefix="/api/files", tags=["files"])
+app.include_router(terminal.router, prefix="/api/terminal", tags=["terminal"])
 
 
 @app.get("/api/health")
