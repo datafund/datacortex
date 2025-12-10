@@ -34,6 +34,7 @@ datacortex digest              # Link suggestions
 datacortex gaps                # Knowledge gaps
 datacortex insights            # Cluster analysis
 datacortex search "query"      # Question answering
+datacortex opportunities       # Low-hanging fruit for research
 ```
 
 ## CLI Commands
@@ -54,6 +55,7 @@ datacortex digest [--threshold 0.8] [--top-n 20]
 datacortex gaps [--min-score 0.3]
 datacortex insights [--cluster N] [--top 5]
 datacortex search "query" [--top 10] [--no-expand]
+datacortex opportunities [--top 15]
 
 # Server
 datacortex serve [--port 8765]
@@ -70,6 +72,7 @@ Use from Claude Code for AI-synthesized insights. These commands run the CLI too
 | `/datacortex-gaps` | haiku | Bridge suggestions between knowledge clusters |
 | `/datacortex-insights` | sonnet | Deep cluster analysis with themes and patterns |
 | `/datacortex-ask [question]` | haiku | Answer questions from your knowledge base (RAG) |
+| `/datacortex-opportunities` | haiku | Find low-hanging fruit for research |
 
 **Model assignments**: Commands use `## Model` hints to tell Claude Code which model to use. Haiku is fast/cheap for suggestions; Sonnet provides deeper analysis for insights.
 
@@ -186,6 +189,42 @@ RAG (Retrieval-Augmented Generation) pipeline for "What do I know about X?" quer
 datacortex search "data tokenization" --top 10
 datacortex search "DMCC pilot" --no-expand  # Skip graph expansion
 ```
+
+### Phase 6: Research Opportunities (`datacortex opportunities`)
+
+Find "low-hanging fruit" - stubs to fill, orphans to integrate, underlinked content to connect.
+
+- **High-value stubs**: Stub notes with many references but no content (concepts your KB expects but hasn't defined)
+- **Integration candidates**: Orphan documents with real content (100+ words) but no links
+- **Underlinked content**: Substantial documents (300+ words) with only 1-2 connections
+- **Stub-heavy clusters**: Topic areas where most notes are stubs (need research)
+
+```bash
+datacortex opportunities              # Find research opportunities
+datacortex opportunities --top 20     # More results per category
+datacortex opportunities --space datafund  # Single space
+```
+
+**Example output:**
+```
+## HIGH_VALUE_STUBS
+Fair Data Economy | 16 refs | 0.402 | stub, needs-content
+Bootstrap Liquidity Fund | 11 refs | 0.237 | stub, needs-content
+
+## INTEGRATION_CANDIDATES
+The fund in Datafund | 9166w | unknown | research/The fund in Datafund.md
+SemantiCord - Technical Overview | 3700w | unknown | research/SemantiCord.md
+
+## UNDERLINKED_CONTENT
+ChainLink | 3507w | 1 links | page
+Investment Thesis | 3337w | 2 links | page
+
+## STUB_HEAVY_CLUSTERS
+Cluster 89 | 129 nodes | 127 stubs | 98% | Datahaven; Roam Network; Swarmy.cloud
+Cluster 1 | 41 nodes | 30 stubs | 73% | Triple-Sided Marketplace; AI Agents
+```
+
+Use with `/datacortex-opportunities` in Claude Code - it presents the list and offers to research/fill selected items.
 
 ## Configuration
 
