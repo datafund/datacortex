@@ -4,7 +4,8 @@ Knowledge graph visualization and AI-powered analysis for [Datacore](https://git
 
 ## Features
 
-- **Graph Visualization**: Interactive D3.js force-directed graph
+- **Workspace UI**: Browser-based editor with file tree, Claude Code terminal, and knowledge graph
+- **Graph Visualization**: Interactive D3.js force-directed graph with node labels
 - **Temporal Pulses**: Snapshot graph state over time
 - **Multi-Space**: Configure which Datacore spaces to include
 - **Metrics**: Degree centrality, PageRank, Louvain clustering
@@ -25,9 +26,9 @@ pip install -e .
 # 1. Compute embeddings (first time, ~5-10 min)
 datacortex embed
 
-# 2. Start visualization server
+# 2. Start server and open workspace
 datacortex serve
-# Open http://localhost:8765
+# Open http://localhost:8765/workspace.html
 
 # 3. Get AI-powered suggestions
 datacortex digest              # Link suggestions
@@ -36,6 +37,39 @@ datacortex insights            # Cluster analysis
 datacortex search "query"      # Question answering
 datacortex opportunities       # Low-hanging fruit for research
 ```
+
+## Workspace UI
+
+The workspace provides a browser-based interface for working with your knowledge base alongside Claude Code.
+
+```
+┌──────────────────────────────────────────────────────────────────────────┐
+│ [Search: Ctrl+P]                                  [Links ▼] [Graph]      │
+├───────────────┬──────────────────────────────────┬───────────────────────┤
+│ File Tree     │  Markdown Editor (CodeMirror 6)  │ Knowledge Graph (D3)  │
+│ ├── 0-personal│  [Ask Claude] [Save] [Discard]   │ - Click node to open  │
+│ └── 1-datafund│                                  │ - Synced with editor  │
+├───────────────┴──────────────────────────────────┴───────────────────────┤
+│ Claude Code Terminal (xterm.js) [Clear] [Reconnect]                      │
+└──────────────────────────────────────────────────────────────────────────┘
+```
+
+**Features:**
+- **File Tree**: Browse and open files from your Datacore spaces
+- **Markdown Editor**: CodeMirror 6 with syntax highlighting, save/discard
+- **Claude Code Terminal**: WebSocket PTY bridge to Claude Code (new session per connection)
+- **Knowledge Graph**: D3.js force graph with labels, docked on right panel (toggle with Graph button)
+- **Synced Views**: Click a file → highlights in tree + zooms in graph; click graph node → opens file
+- **Search**: Ctrl+P to search by filename or content
+- **Links**: Dropdown showing outgoing wiki-links and backlinks
+
+**Access:**
+```bash
+datacortex serve --port 8765
+open http://localhost:8765/workspace.html
+```
+
+Or use `/datacortex workspace` from Claude Code.
 
 ## CLI Commands
 
@@ -111,8 +145,11 @@ datacortex/
 │   ├── insights/       # Cluster analysis
 │   ├── qa/             # Question answering (RAG)
 │   ├── api/            # FastAPI backend
+│   │   └── routes/     # API endpoints (graph, files, terminal)
 │   └── cli/            # Click commands
-├── frontend/           # D3.js visualization
+├── frontend/
+│   ├── index.html      # Graph visualization
+│   └── workspace.html  # Workspace UI (editor, terminal, graph)
 ├── config/             # YAML configuration
 └── docs/               # Documentation
 ```
