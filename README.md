@@ -187,7 +187,7 @@ RAG (Retrieval-Augmented Generation) pipeline for "What do I know about X?" quer
 
 ```bash
 datacortex search "data tokenization" --top 10
-datacortex search "DMCC pilot" --no-expand  # Skip graph expansion
+datacortex search "Data pilot" --no-expand  # Skip graph expansion
 ```
 
 ### Phase 6: Research Opportunities (`datacortex opportunities`)
