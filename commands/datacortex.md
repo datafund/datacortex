@@ -5,7 +5,27 @@ Knowledge graph visualization for your Datacore installation.
 ## Usage
 
 ```
-/datacortex [subcommand]
+/datacortex [subcommand] [args]
+```
+
+## Implementation
+
+This command wraps the `datacortex` CLI. Run the user's subcommand:
+
+```bash
+datacortex $ARGUMENTS
+```
+
+Where `$ARGUMENTS` is everything after `/datacortex`.
+
+**Examples:**
+- `/datacortex serve` → `datacortex serve`
+- `/datacortex stats` → `datacortex stats`
+- `/datacortex pulse generate` → `datacortex pulse generate`
+
+If the `datacortex` command is not found, inform the user to install it:
+```bash
+cd ~/Data/1-datafund/2-projects/datacortex && pip install -e .
 ```
 
 ## Subcommands
@@ -36,12 +56,6 @@ Knowledge graph visualization for your Datacore installation.
 /datacortex orphans
 ```
 
-## Requirements
-
-- Python 3.10+
-- Datacortex module installed (`pip install -e .`)
-- Datacore knowledge database populated
-
 ## What It Shows
 
 The visualization displays:
@@ -52,16 +66,29 @@ The visualization displays:
 
 ## Installation
 
-If not already installed:
+### 1. Install Python package (required)
 
 ```bash
 cd ~/Data/1-datafund/2-projects/datacortex
 pip install -e .
 ```
 
-Or symlink as a module:
+### 2. Install slash command (to enable /datacortex)
+
+```bash
+# Symlink command to Claude commands directory
+mkdir -p ~/.claude/commands
+ln -s ~/Data/1-datafund/2-projects/datacortex/commands/datacortex.md ~/.claude/commands/datacortex.md
+```
+
+### 3. Register as module (optional, for discovery)
 
 ```bash
 cd ~/Data/.datacore/modules
 ln -s ~/Data/1-datafund/2-projects/datacortex datacortex
 ```
+
+## Requirements
+
+- Python 3.10+
+- Datacore knowledge database populated (`~/.datacore/knowledge.db`)
