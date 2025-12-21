@@ -575,6 +575,173 @@ def opportunities(space: Optional[str], top: int):
     click.echo(formatted)
 
 
+# =============================================================================
+# AGENT DISCOVERY COMMANDS (DIP-0016)
+# =============================================================================
+
+@cli.group()
+def agent():
+    """Agent registry commands (DIP-0016)."""
+    pass
+
+
+@agent.command('list')
+@click.option('--json', 'as_json', is_flag=True, help='Output as JSON')
+@click.option('--skills', is_flag=True, help='Include skills in output')
+def agent_list(as_json: bool, skills: bool):
+    """List all registered agents."""
+    from ..registry import get_all_agents
+
+    agents = get_all_agents()
+
+    if not agents:
+        click.echo("No agents registered. Run agent-registry-auditor to populate.")
+        return
+
+    if as_json:
+        click.echo(json.dumps(agents, indent=2))
+        return
+
+    click.echo(f"\n{'='*60}")
+    click.echo(f"  REGISTERED AGENTS ({len(agents)})")
+    click.echo(f"{'='*60}\n")
+
+    for agent_id, metadata in sorted(agents.items()):
+        desc = metadata.get("description", "No description")[:55]
+        click.echo(f"  {agent_id}")
+        click.echo(f"    {desc}")
+
+        if skills:
+            agent_skills = metadata.get("skills", [])
+            if agent_skills:
+                click.echo(f"    Skills: {', '.join(agent_skills[:5])}")
+
+        click.echo()
+
+
+@agent.command('show')
+@click.argument('agent_id')
+@click.option('--json', 'as_json', is_flag=True, help='Output as JSON')
+def agent_show(agent_id: str, as_json: bool):
+    """Show details for a specific agent."""
+    from ..registry import get_agent_metadata, format_agent_summary
+
+    metadata = get_agent_metadata(agent_id)
+
+    if not metadata:
+        click.echo(f"Agent not found: {agent_id}")
+        return
+
+    if as_json:
+        click.echo(json.dumps(metadata, indent=2))
+        return
+
+    click.echo(f"\n{format_agent_summary(agent_id, metadata)}\n")
+
+    # Show reads
+    reads = metadata.get("reads", {})
+    required = reads.get("required", [])
+    contextual = reads.get("contextual", [])
+
+    if required:
+        click.echo("  Reads (Required):")
+        for path in required:
+            click.echo(f"    - {path}")
+
+    if contextual:
+        click.echo("  Reads (Contextual):")
+        for query in contextual:
+            click.echo(f"    - {query}")
+
+    # Show writes
+    writes = metadata.get("writes", [])
+    if writes:
+        click.echo("  Writes:")
+        for path in writes:
+            click.echo(f"    - {path}")
+
+    # Show references
+    refs = metadata.get("references", {})
+    dips = refs.get("dips", [])
+    specs = refs.get("specs", [])
+
+    if dips or specs:
+        click.echo("  References:")
+        for dip in dips:
+            click.echo(f"    - {dip}")
+        for spec in specs:
+            click.echo(f"    - {spec}")
+
+    click.echo()
+
+
+@agent.command('find')
+@click.argument('query')
+@click.option('--by', type=click.Choice(['skill', 'tag', 'command']), default='skill',
+              help='Search by skill (default), tag, or command')
+@click.option('--json', 'as_json', is_flag=True, help='Output as JSON')
+def agent_find(query: str, by: str, as_json: bool):
+    """Find agents by skill, tag, or command."""
+    from ..registry import find_agents_by_skill, find_agents_by_tag, find_agents_by_command
+
+    if by == 'skill':
+        agents = find_agents_by_skill(query)
+    elif by == 'tag':
+        agents = find_agents_by_tag(query)
+    elif by == 'command':
+        agents = find_agents_by_command(query)
+    else:
+        agents = []
+
+    if not agents:
+        click.echo(f"No agents found for {by}='{query}'")
+        return
+
+    if as_json:
+        click.echo(json.dumps(agents, indent=2))
+        return
+
+    click.echo(f"\n{'='*60}")
+    click.echo(f"  AGENTS WITH {by.upper()}: {query} ({len(agents)})")
+    click.echo(f"{'='*60}\n")
+
+    for agent in agents:
+        agent_id = agent.get("id", "unknown")
+        desc = agent.get("description", "No description")[:55]
+        skills = agent.get("skills", [])
+
+        click.echo(f"  {agent_id}")
+        click.echo(f"    {desc}")
+        if skills:
+            click.echo(f"    Skills: {', '.join(skills[:5])}")
+        click.echo()
+
+
+@agent.command('cycles')
+def agent_cycles():
+    """Detect circular spawn dependencies."""
+    from ..registry import detect_spawn_cycles
+
+    cycles = detect_spawn_cycles()
+
+    if not cycles:
+        click.echo("\nNo spawn cycles detected. Agent relationships are acyclic.\n")
+        return
+
+    click.echo(f"\n{'='*60}")
+    click.echo(f"  WARNING: SPAWN CYCLES DETECTED ({len(cycles)})")
+    click.echo(f"{'='*60}\n")
+
+    for cycle in cycles:
+        click.echo(f"  {' -> '.join(cycle)}")
+
+    click.echo("\nCircular spawns can cause infinite loops. Fix these relationships.\n")
+
+
+# =============================================================================
+# SEARCH COMMANDS
+# =============================================================================
+
 @cli.command()
 @click.argument('query')
 @click.option('--space', '-s', multiple=True, help='Spaces to search (can specify multiple)')
