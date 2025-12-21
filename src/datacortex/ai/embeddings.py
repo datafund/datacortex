@@ -170,3 +170,110 @@ def compute_embeddings_for_space(space: str, force: bool = False) -> dict[str, n
 
     conn.close()
     return embeddings
+
+
+# =============================================================================
+# SESSION MEMORY EMBEDDINGS (DIP-0016)
+# =============================================================================
+
+def embed_session_memory(
+    memory_id: str,
+    summary: str,
+    agent_id: str,
+    tags: list[str],
+    space: str = "personal"
+) -> np.ndarray:
+    """Embed a session memory for future retrieval (DIP-0016).
+
+    Session memories are agent execution summaries that get embedded
+    so they can be retrieved in future sessions.
+
+    Args:
+        memory_id: Unique memory identifier (from execution_log)
+        summary: Summary text to embed
+        agent_id: Agent that generated this memory
+        tags: Tags for categorization
+
+    Returns:
+        Embedding vector
+    """
+    from .cache import init_embeddings_table, save_embedding
+
+    # Compose embedding text
+    text = f"[{agent_id}] {summary}"
+    if tags:
+        text += f"\n\nTags: {', '.join(tags)}"
+
+    # Embed
+    embedding = embed_text(text)
+
+    # Save to cache with session-memory type prefix
+    conn = get_connection(space)
+    init_embeddings_table(conn)
+
+    content_hash = hashlib.md5(text.encode()).hexdigest()
+    session_file_id = f"session-memory:{memory_id}"
+
+    save_embedding(conn, session_file_id, embedding, MODEL_NAME, content_hash)
+    conn.close()
+
+    return embedding
+
+
+def embed_pending_session_memories(space: str = "personal") -> int:
+    """Embed all unembedded session memories from execution_log (DIP-0016).
+
+    Reads execution_log.yaml, finds memories with retrievable=False,
+    embeds them, and marks them as retrievable.
+
+    Args:
+        space: Space to store embeddings in
+
+    Returns:
+        Number of memories embedded
+    """
+    import os
+    from pathlib import Path
+    import yaml
+
+    # Load execution log
+    datacore_root = Path(os.environ.get("DATACORE_ROOT", Path.home() / "Data"))
+    log_path = datacore_root / ".datacore" / "state" / "execution_log.yaml"
+
+    if not log_path.exists():
+        return 0
+
+    with open(log_path, 'r') as f:
+        log = yaml.safe_load(f) or {}
+
+    session_memories = log.get("session_memories", [])
+    embedded_count = 0
+
+    for memory in session_memories:
+        if not memory.get("retrievable", False):
+            # Embed this memory
+            memory_id = memory.get("memory_id", "")
+            summary = memory.get("summary", "")
+            agent_id = memory.get("agent_id", "unknown")
+            tags = memory.get("tags", [])
+
+            if summary:
+                embedding = embed_session_memory(
+                    memory_id=memory_id,
+                    summary=summary,
+                    agent_id=agent_id,
+                    tags=tags,
+                    space=space
+                )
+
+                # Mark as retrievable
+                memory["embedding_id"] = f"session-memory:{memory_id}"
+                memory["retrievable"] = True
+                embedded_count += 1
+
+    # Save updated log
+    if embedded_count > 0:
+        with open(log_path, 'w') as f:
+            yaml.dump(log, f, default_flow_style=False, sort_keys=False)
+
+    return embedded_count

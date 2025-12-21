@@ -29,6 +29,15 @@ class SearchResult:
 
 
 @dataclass
+class ReasoningHop:
+    """Single hop in multi-hop reasoning path (DIP-0016)."""
+    hop: int
+    query: str
+    results_count: int
+    selected_ids: list[str]
+
+
+@dataclass
 class SearchResults:
     """Collection of search results with metadata."""
     query: str
@@ -36,6 +45,8 @@ class SearchResults:
     expanded: bool
     top_k: int
     generated_at: str
+    # DIP-0016: Multi-hop reasoning path
+    reasoning_path: list[ReasoningHop] = None
 
 
 def load_embeddings_for_space(space: str) -> tuple[dict[str, np.ndarray], dict[str, dict]]:
@@ -216,14 +227,21 @@ def load_full_content(space: str, file_ids: list[str]) -> dict[str, str]:
     return content_map
 
 
-def search(query: str, spaces: list[str], top_k: int = 5, expand: bool = True) -> SearchResults:
-    """RAG retrieval pipeline.
+def search(
+    query: str,
+    spaces: list[str],
+    top_k: int = 5,
+    expand: bool = True,
+    max_hops: int = 1,
+    track_reasoning: bool = False
+) -> SearchResults:
+    """RAG retrieval pipeline with optional multi-hop reasoning (DIP-0016).
 
     Pipeline:
     1. Embed query using same model as corpus
     2. Load all embeddings from cache
     3. Vector search - find top 10 candidates by cosine similarity
-    4. Graph expansion (if enabled) - add 1-hop neighbors
+    4. Graph expansion (if enabled) - add N-hop neighbors (max_hops)
     5. Re-rank all candidates:
        - vec_score * 0.6 + recency * 0.2 + centrality * 0.2
        - Direct match boost: 1.2x for original candidates
@@ -235,9 +253,11 @@ def search(query: str, spaces: list[str], top_k: int = 5, expand: bool = True) -
         spaces: List of space names to search
         top_k: Number of results to return (default 5)
         expand: Whether to expand with graph neighbors (default True)
+        max_hops: Maximum graph expansion depth (default 1, DIP-0016)
+        track_reasoning: Whether to track reasoning path (default False, DIP-0016)
 
     Returns:
-        SearchResults object with ranked results
+        SearchResults object with ranked results and optional reasoning path
     """
     # Step 1: Embed query
     query_embedding = embed_text(query)
@@ -251,13 +271,17 @@ def search(query: str, spaces: list[str], top_k: int = 5, expand: bool = True) -
         all_embeddings.update(embeddings)
         all_metadata.update(metadata)
 
+    # DIP-0016: Track reasoning path
+    reasoning_path = [] if track_reasoning else None
+
     if not all_embeddings:
         return SearchResults(
             query=query,
             results=[],
             expanded=expand,
             top_k=top_k,
-            generated_at=datetime.now().isoformat()
+            generated_at=datetime.now().isoformat(),
+            reasoning_path=reasoning_path
         )
 
     # Step 3: Vector search - find top 10 candidates by cosine similarity
@@ -270,7 +294,16 @@ def search(query: str, spaces: list[str], top_k: int = 5, expand: bool = True) -
     top_10_candidates = [c[0] for c in candidates[:10]]
     original_candidates = set(top_10_candidates)
 
-    # Step 4: Graph expansion (if enabled)
+    # DIP-0016: Record first hop
+    if track_reasoning:
+        reasoning_path.append(ReasoningHop(
+            hop=1,
+            query=query,
+            results_count=len(candidates),
+            selected_ids=top_10_candidates[:5]  # Top 5 for path
+        ))
+
+    # Step 4: Graph expansion (if enabled) - DIP-0016: multi-hop support
     expanded_candidates = []
     if expand:
         # For each space, expand within that space
@@ -293,11 +326,35 @@ def search(query: str, spaces: list[str], top_k: int = 5, expand: bool = True) -
                 space_candidates[space_key] = []
             space_candidates[space_key].append(file_id)
 
-        # Expand within each space
+        # DIP-0016: Multi-hop expansion
         expanded_set = set(top_10_candidates)
-        for space_key, space_cands in space_candidates.items():
-            if space_key in spaces:
-                expanded_set.update(expand_with_neighbors(space_cands, space_key))
+        current_frontier = list(top_10_candidates)
+
+        for hop_num in range(max_hops):
+            new_neighbors = set()
+            for space_key, space_cands in space_candidates.items():
+                if space_key in spaces:
+                    # Get neighbors of current frontier within this space
+                    frontier_in_space = [fid for fid in current_frontier
+                                         if fid in space_cands or fid in expanded_set]
+                    if frontier_in_space:
+                        neighbors = expand_with_neighbors(frontier_in_space, space_key)
+                        new_neighbors.update(neighbors - expanded_set)
+
+            if not new_neighbors:
+                break  # No more expansion possible
+
+            expanded_set.update(new_neighbors)
+            current_frontier = list(new_neighbors)
+
+            # DIP-0016: Record hop in reasoning path
+            if track_reasoning:
+                reasoning_path.append(ReasoningHop(
+                    hop=hop_num + 2,  # Hop 2, 3, etc.
+                    query=f"graph expansion hop {hop_num + 1}",
+                    results_count=len(new_neighbors),
+                    selected_ids=list(new_neighbors)[:5]
+                ))
 
         expanded_candidates = list(expanded_set)
     else:
@@ -366,5 +423,6 @@ def search(query: str, spaces: list[str], top_k: int = 5, expand: bool = True) -
         results=results,
         expanded=expand,
         top_k=top_k,
-        generated_at=datetime.now().isoformat()
+        generated_at=datetime.now().isoformat(),
+        reasoning_path=reasoning_path  # DIP-0016
     )
