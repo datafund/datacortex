@@ -1,5 +1,47 @@
 # /datacortex
 
+## Command Context
+
+### When to Reference Datacortex Module
+
+**Always reference when:**
+- User wants to visualize their knowledge graph
+- User mentions exploring connections, links, or relationships between notes
+- User asks about orphan notes or unlinked documents
+- User wants to see knowledge structure or take knowledge snapshots
+- User refers to graph visualization or network diagrams
+
+**Key decisions the module informs:**
+- Whether to open interactive visualization vs show stats
+- Which space(s) to visualize (single space or combined view)
+- How to identify and surface orphan documents
+- When to take temporal snapshots (pulses) for tracking changes
+- Whether to auto-serve the visualization without prompting
+
+### Quick Reference
+
+| Question | Answer |
+|----------|--------|
+| What can I do? | Explore (visualize), Stats, Find orphans, Take snapshot |
+| Where does it run? | Local server at http://localhost:8765 |
+| What's a pulse? | Temporal snapshot of graph structure for change tracking |
+| Can I see multiple spaces? | Yes, can visualize all spaces combined or individually |
+
+### Agents This Command Invokes
+
+| Agent | Purpose |
+|-------|---------|
+| (None directly) | Uses datacortex CLI tool directly |
+
+### Integration Points
+
+- **datacortex CLI** - Installed via `pip install -e .` in project directory
+- **knowledge.db** - SQLite database at `~/.datacore/knowledge.db`
+- **Obsidian notes** - Source data from `{space}/notes/` directories
+- **Settings** - `settings.local.yaml` for auto-serve and default space
+
+---
+
 Knowledge graph visualization for your Datacore installation.
 
 ## Workflow
