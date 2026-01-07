@@ -292,6 +292,11 @@ pip install -e ".[dev]"
 pytest
 ```
 
+## Version History
+
+- **v0.2.0** - Workspace UI with file browser and terminal integration
+- **v0.1.0** - Initial release: Graph visualization, embeddings, digest, gaps, insights, Q&A, opportunities, multi-hop search
+
 ## License
 
 MIT
