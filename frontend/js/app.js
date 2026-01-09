@@ -10,22 +10,38 @@ class Datacortex {
         this.graphView = null;
         this.selectedNode = null;
         this.pulses = [];
-        this.filters = {
-            spaces: new Set(),
-            types: new Set(),
-            minDegree: 1,
-            searchQuery: ''
-        };
+
+        // Simple filter model: sets contain what's INCLUDED (checked)
+        this.includedSpaces = new Set();  // Empty = show nothing, check to add
+        this.includedTypes = new Set();   // Empty = show nothing, check to add
+        this.minDegree = 1;
+        this.searchQuery = '';
+
+        // Track all available options (populated from first API call)
+        this.allSpaces = new Set();
+        this.allTypes = new Set();
+        this.initialLoadDone = false;
+
+        // Debounced graph loader
+        this.debouncedLoadGraph = this.debounce(() => this.loadGraph(), 300);
 
         this.init();
+    }
+
+    debounce(fn, ms) {
+        let timeout;
+        return (...args) => {
+            clearTimeout(timeout);
+            timeout = setTimeout(() => fn.apply(this, args), ms);
+        };
     }
 
     async init() {
         // Initialize graph visualization
         this.graphView = new GraphView('#graph', this);
 
-        // Load initial data
-        await this.loadGraph();
+        // First load - get all data to discover available spaces/types
+        await this.loadGraph({ initial: true });
         await this.loadPulses();
         await this.loadTags();
 
@@ -39,32 +55,69 @@ class Datacortex {
         try {
             const queryParams = new URLSearchParams();
 
-            if (this.filters.spaces.size > 0) {
-                queryParams.set('spaces', Array.from(this.filters.spaces).join(','));
+            // Only apply filters after initial load
+            if (this.initialLoadDone) {
+                // Send included spaces to API (if not all)
+                if (this.includedSpaces.size > 0 && this.includedSpaces.size < this.allSpaces.size) {
+                    queryParams.set('spaces', [...this.includedSpaces].join(','));
+                } else if (this.includedSpaces.size === 0) {
+                    // Nothing selected - show empty graph
+                    this.graph = { nodes: [], links: [], stats: { node_count: 0, edge_count: 0, avg_degree: 0, cluster_count: 0, orphan_count: 0, nodes_by_space: {}, nodes_by_type: {} }};
+                    this.graphView.render({ nodes: [], links: [] });
+                    this.updateStats();
+                    return;
+                }
+                // Types are filtered client-side after fetch
             }
-            if (this.filters.types.size > 0) {
-                queryParams.set('types', Array.from(this.filters.types).join(','));
-            }
-            if (this.filters.minDegree > 0) {
-                queryParams.set('min_degree', this.filters.minDegree);
+
+            if (this.minDegree > 0) {
+                queryParams.set('min_degree', this.minDegree);
             }
 
             const url = `${API_BASE}/graph?${queryParams}`;
+            console.log('Fetching:', url);
             const response = await fetch(url);
             this.graph = await response.json();
 
-            // Apply search filter client-side
+            // On initial load, discover all spaces/types and include all by default
+            if (params.initial || !this.initialLoadDone) {
+                if (this.graph.stats) {
+                    this.allSpaces = new Set(Object.keys(this.graph.stats.nodes_by_space || {}));
+                    this.allTypes = new Set(Object.keys(this.graph.stats.nodes_by_type || {}));
+                    // Start with NOTHING selected for testing
+                    this.includedSpaces = new Set();  // Empty - user opts in
+                    this.includedTypes = new Set([...this.allTypes]);  // All types by default
+                }
+                this.initialLoadDone = true;
+
+                // Show empty graph initially
+                this.graphView.render({ nodes: [], links: [] });
+                this.updateStats();
+                return;
+            }
+
+            // Apply type filter client-side
             let nodes = this.graph.nodes;
             let links = this.graph.links;
 
-            if (this.filters.searchQuery) {
-                const query = this.filters.searchQuery.toLowerCase();
+            if (this.includedTypes.size > 0 && this.includedTypes.size < this.allTypes.size) {
+                nodes = nodes.filter(n => this.includedTypes.has(n.type));
+                const nodeIds = new Set(nodes.map(n => n.id));
+                links = links.filter(l => {
+                    const sourceId = typeof l.source === 'object' ? l.source.id : l.source;
+                    const targetId = typeof l.target === 'object' ? l.target.id : l.target;
+                    return nodeIds.has(sourceId) && nodeIds.has(targetId);
+                });
+            }
+
+            // Apply search filter client-side
+            if (this.searchQuery) {
+                const query = this.searchQuery.toLowerCase();
                 nodes = nodes.filter(n =>
                     n.title.toLowerCase().includes(query) ||
                     (n.tags && n.tags.some(t => t.toLowerCase().includes(query)))
                 );
                 const nodeIds = new Set(nodes.map(n => n.id));
-                // Handle both string IDs (from API) and object refs (after D3 render)
                 links = links.filter(l => {
                     const sourceId = typeof l.source === 'object' ? l.source.id : l.source;
                     const targetId = typeof l.target === 'object' ? l.target.id : l.target;
@@ -174,15 +227,15 @@ class Datacortex {
         content.innerHTML = `
             <div class="stat-row">
                 <span class="stat-label">Nodes</span>
-                <span class="stat-value">${stats.node_count.toLocaleString()}</span>
+                <span class="stat-value">${(stats.node_count || 0).toLocaleString()}</span>
             </div>
             <div class="stat-row">
                 <span class="stat-label">Edges</span>
-                <span class="stat-value">${stats.edge_count.toLocaleString()}</span>
+                <span class="stat-value">${(stats.edge_count || 0).toLocaleString()}</span>
             </div>
             <div class="stat-row">
                 <span class="stat-label">Avg Degree</span>
-                <span class="stat-value">${stats.avg_degree.toFixed(1)}</span>
+                <span class="stat-value">${(stats.avg_degree || 0).toFixed(1)}</span>
             </div>
             <div class="stat-row">
                 <span class="stat-label">Clusters</span>
@@ -190,16 +243,16 @@ class Datacortex {
             </div>
             <div class="stat-row">
                 <span class="stat-label">Orphans</span>
-                <span class="stat-value">${stats.orphan_count}</span>
+                <span class="stat-value">${stats.orphan_count || 0}</span>
             </div>
         `;
 
-        // Build filter checkboxes from data
-        this.buildSpaceFilters(stats.nodes_by_space);
-        this.buildTypeFilters(stats.nodes_by_type);
+        // Build filter checkboxes - use allSpaces/allTypes for options
+        this.buildSpaceFilters();
+        this.buildTypeFilters();
     }
 
-    buildSpaceFilters(spaceStats) {
+    buildSpaceFilters() {
         const container = document.getElementById('space-filters');
         const colors = {
             personal: 'var(--space-personal)',
@@ -207,29 +260,31 @@ class Datacortex {
             datacore: 'var(--space-datacore)'
         };
 
-        container.innerHTML = Object.entries(spaceStats).map(([space, count]) => `
+        // Use allSpaces for the options, includedSpaces for checked state
+        container.innerHTML = [...this.allSpaces].map(space => `
             <label class="filter-checkbox">
-                <input type="checkbox" data-space="${space}" checked>
+                <input type="checkbox" data-space="${space}" ${this.includedSpaces.has(space) ? 'checked' : ''}>
                 <span class="color-dot" style="background: ${colors[space] || '#888'}"></span>
-                ${space} (${count})
+                ${space}
             </label>
         `).join('');
 
         // Add event listeners
         container.querySelectorAll('input').forEach(input => {
             input.addEventListener('change', () => {
+                const space = input.dataset.space;
                 if (input.checked) {
-                    this.filters.spaces.delete(input.dataset.space);
+                    this.includedSpaces.add(space);
                 } else {
-                    this.filters.spaces.add(input.dataset.space);
+                    this.includedSpaces.delete(space);
                 }
-                // Note: spaces filter is inverted (checked = include all)
-                this.loadGraph();
+                console.log('Included spaces:', [...this.includedSpaces]);
+                this.debouncedLoadGraph();
             });
         });
     }
 
-    buildTypeFilters(typeStats) {
+    buildTypeFilters() {
         const container = document.getElementById('type-filters');
         const colors = {
             zettel: 'var(--node-zettel)',
@@ -239,24 +294,26 @@ class Datacortex {
             stub: 'var(--node-stub)'
         };
 
-        container.innerHTML = Object.entries(typeStats).map(([type, count]) => `
+        // Use allTypes for options, includedTypes for checked state
+        container.innerHTML = [...this.allTypes].map(type => `
             <label class="filter-checkbox">
-                <input type="checkbox" data-type="${type}" checked>
+                <input type="checkbox" data-type="${type}" ${this.includedTypes.has(type) ? 'checked' : ''}>
                 <span class="color-dot" style="background: ${colors[type] || '#888'}"></span>
-                ${type} (${count})
+                ${type}
             </label>
         `).join('');
 
-        // Add event listeners for type filters
+        // Add event listeners
         container.querySelectorAll('input').forEach(input => {
             input.addEventListener('change', () => {
+                const type = input.dataset.type;
                 if (input.checked) {
-                    this.filters.types.delete(input.dataset.type);
+                    this.includedTypes.add(type);
                 } else {
-                    this.filters.types.add(input.dataset.type);
+                    this.includedTypes.delete(type);
                 }
-                // Note: types filter is inverted (checked = include, unchecked = exclude)
-                this.loadGraph();
+                console.log('Included types:', [...this.includedTypes]);
+                this.debouncedLoadGraph();
             });
         });
     }
@@ -368,7 +425,7 @@ class Datacortex {
     }
 
     filterByTag(tag) {
-        this.filters.searchQuery = tag;
+        this.searchQuery = tag;
         document.getElementById('search').value = tag;
         this.loadGraph();
     }
