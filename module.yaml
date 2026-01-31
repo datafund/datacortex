@@ -7,8 +7,8 @@ repository: https://github.com/datafund/datacortex
 dependencies: []
 
 provides:
-  commands:
-    - datacortex   # Conversational entry point
+  skills:
+    - datacortex   # Knowledge graph visualization
 
 # Settings (user can override in settings.local.yaml under datacortex:)
 settings:
