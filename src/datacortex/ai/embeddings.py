@@ -98,7 +98,7 @@ def compute_embeddings_for_space(space: str, force: bool = False) -> dict[str, n
     Uses caching - only recomputes if document changed or force=True.
 
     Args:
-        space: Space name (personal, datafund, datacore)
+        space: Space name (personal, teamspace, projectspace)
         force: If True, recompute all embeddings regardless of cache
 
     Returns:

@@ -92,20 +92,20 @@ This module follows the Datacore module pattern:
 ```bash
 # Symlink into modules directory
 cd ~/Data/.datacore/modules
-ln -s ~/Data/1-datafund/2-projects/datacortex datacortex
+ln -s /path/to/datacortex datacortex
 
 # Or clone directly
-git clone https://github.com/datafund/datacortex.git
+git clone https://github.com/datacore-system/datacortex.git
 ```
 
 ### Python Installation
 
 ```bash
-cd ~/Data/1-datafund/2-projects/datacortex
+cd /path/to/datacortex
 pip install -e .
 ```
 
 ## Related Documentation
 
-- [Datacore Module Specification](https://github.com/datafund/datacore/blob/main/.datacore/specs/datacore-specification.md#modules)
-- [DIP-0002: Layered Context Pattern](https://github.com/datafund/datacore/blob/main/.datacore/dips/DIP-0002-layered-context-pattern.md)
+- [Datacore Module Specification](https://github.com/datacore-system/datacore/blob/main/.datacore/specs/datacore-specification.md#modules)
+- [DIP-0002: Layered Context Pattern](https://github.com/datacore-system/datacore/blob/main/.datacore/dips/DIP-0002-layered-context-pattern.md)

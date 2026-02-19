@@ -40,16 +40,16 @@ No external API integration needed for natural language generation. Claude Code 
 ```
 # SIMILAR_PAIRS threshold=0.75
 Data Tokenization | Real World Assets | 0.87 | unlinked
-KYC State Machine | Verity Compliance | 0.82 | unlinked
-Swarm Storage | IPFS Overview | 0.79 | linked
+KYC State Machine | Platform Compliance | 0.82 | unlinked
+Distributed Storage | IPFS Overview | 0.79 | linked
 ```
 
 #### Cluster Analysis (Insights)
 ```
 # CLUSTER id=3 size=47 avg_words=342
 ## HUBS
-Data Tokenization | 0.045 | 523w | rwa,tokenization,verity
-Swarm Storage | 0.032 | 412w | storage,decentralized
+Data Tokenization | 0.045 | 523w | rwa,tokenization,platform
+Distributed Storage | 0.032 | 412w | storage,decentralized
 API Design | 0.028 | 298w | api,patterns
 
 ## TAGS tokenization:12 data:10 api:8 rwa:6
@@ -69,15 +69,15 @@ Data tokenization transforms data ownership into tradeable...
 0.85 | Real World Assets | zettel | 412w
 RWAs represent physical or digital assets on blockchain...
 
-0.78 | Verity Specification | page | 2341w
-Verity enables data owners to monetize datasets...
+0.78 | Platform Specification | page | 2341w
+The platform enables data owners to monetize datasets...
 ```
 
 #### Knowledge Gaps
 ```
 # GAPS
 ## GAP cluster_a=3 cluster_b=7 semantic=0.72 links=2 gap=0.58
-Cluster A (47 docs): Data Tokenization, Swarm Storage, API Design...
+Cluster A (47 docs): Data Tokenization, Distributed Storage, API Design...
 Cluster B (23 docs): Trading Journal, Position Sizing, Risk Management...
 Shared tags: data, analytics
 ```
@@ -155,7 +155,7 @@ Generate "you should link these" suggestions based on content similarity.
 # SIMILAR_PAIRS threshold=0.75 count=20
 # format: doc_a | doc_b | similarity | recency_score | centrality_avg
 Data Tokenization | Real World Assets | 0.87 | 0.9 | 0.04
-KYC State Machine | Verity Compliance | 0.82 | 0.8 | 0.02
+KYC State Machine | Platform Compliance | 0.82 | 0.8 | 0.02
 ...
 
 # ORPHANS count=3
@@ -197,7 +197,7 @@ link_density: 0.02
 cross_links: 2
 
 ### CLUSTER_3 size=47 name=pending
-HUBS: Data Tokenization, Swarm Storage, API Design
+HUBS: Data Tokenization, Distributed Storage, API Design
 TAGS: tokenization, data, api, storage
 
 ### CLUSTER_7 size=23 name=pending
@@ -237,8 +237,8 @@ avg_centrality: 0.012
 density: 0.08
 
 ## HUBS
-Data Tokenization | 0.045 | 523w | rwa,tokenization,verity
-Swarm Storage | 0.032 | 412w | storage,decentralized
+Data Tokenization | 0.045 | 523w | rwa,tokenization,platform
+Distributed Storage | 0.032 | 412w | storage,decentralized
 API Design | 0.028 | 298w | api,patterns
 ...
 
@@ -259,8 +259,8 @@ Data tokenization transforms data ownership into tradeable assets
 through blockchain-based tokens. The SPV structure enables...
 [500 chars]
 
-### Swarm Storage (412w)
-Swarm provides decentralized storage for data provenance...
+### Distributed Storage (412w)
+Distributed storage provides decentralized storage for data provenance...
 [500 chars]
 ```
 
@@ -297,7 +297,7 @@ relevance: 0.92
 path: 3-knowledge/zettel/Data-Tokenization.md
 type: zettel
 words: 523
-tags: rwa, tokenization, verity
+tags: rwa, tokenization, platform
 --- CONTENT ---
 Data tokenization transforms data ownership into tradeable assets...
 [full content]

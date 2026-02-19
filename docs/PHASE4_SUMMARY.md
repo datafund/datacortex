@@ -52,7 +52,7 @@ datacortex insights --no-samples
 datacortex insights --top 5
 
 # Specific space
-datacortex insights --space datafund
+datacortex insights --space teamspace
 ```
 
 ### 3. Datacore Integration
@@ -119,7 +119,7 @@ Content excerpt...
 from datacortex.insights.analyzer import analyze_clusters
 from datacortex.insights.formatter import format_insights
 
-result = analyze_clusters(['datafund'])
+result = analyze_clusters(['teamspace'])
 formatted = format_insights(result)
 print(formatted)
 ```
@@ -169,7 +169,7 @@ python3 -m py_compile src/datacortex/insights/*.py
 
 1. **Install package**:
    ```bash
-   cd /Users/tex/repos/datacore/1-datafund/2-projects/datacortex
+   cd /path/to/datacortex
    pip install -e .
    ```
 

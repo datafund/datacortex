@@ -105,7 +105,7 @@ Formats digest results as compact TSV/markdown for Claude consumption:
 # SIMILAR_PAIRS threshold=0.75 count=20
 # format: doc_a | doc_b | similarity | recency | centrality | score
 Data Tokenization | Real World Assets | 0.87 | 0.9 | 0.04 | 0.73
-KYC State Machine | Verity Compliance | 0.82 | 0.8 | 0.02 | 0.66
+KYC State Machine | Platform Compliance | 0.82 | 0.8 | 0.02 | 0.66
 
 # ORPHANS count=10
 # format: title | words | created_at | path
@@ -165,7 +165,7 @@ This command wraps the CLI tool and provides guidance for Claude Code to:
 datacortex digest
 
 # Generate for specific space
-datacortex digest --space datafund
+datacortex digest --space teamspace
 
 # Adjust threshold and result count
 datacortex digest --threshold 0.8 --top-n 30
@@ -206,15 +206,15 @@ Uses settings from `config/datacortex.yaml`:
 ```yaml
 spaces:
   - personal
-  - datafund
-  - datacore
+  - teamspace
+  - projectspace
 ```
 
 ## Testing
 
 The implementation has been tested with:
 
-- 1283 files in datafund space
+- 1283 files in teamspace space
 - 2859 existing links
 - Embeddings computed on-demand
 
@@ -222,11 +222,11 @@ To test manually:
 
 ```bash
 # Set the correct data root
-export DATACORE_ROOT=/Users/tex/repos/datacore
+export DATACORE_ROOT=~/Data
 
 # Generate digest
-cd /Users/tex/repos/datacore/1-datafund/2-projects/datacortex
-.venv/bin/datacortex digest --space datafund --threshold 0.85 --top-n 5
+cd /path/to/datacortex
+.venv/bin/datacortex digest --space teamspace --threshold 0.85 --top-n 5
 ```
 
 ## Future Enhancements
@@ -242,14 +242,14 @@ Possible improvements for future phases:
 
 ## Files Created
 
-1. `/Users/tex/repos/datacore/1-datafund/2-projects/datacortex/src/datacortex/digest/__init__.py`
-2. `/Users/tex/repos/datacore/1-datafund/2-projects/datacortex/src/datacortex/digest/generator.py`
-3. `/Users/tex/repos/datacore/1-datafund/2-projects/datacortex/src/datacortex/digest/formatter.py`
-4. `/Users/tex/repos/datacore/.datacore/commands/datacortex-digest.md`
+1. `datacortex/src/datacortex/digest/__init__.py`
+2. `datacortex/src/datacortex/digest/generator.py`
+3. `datacortex/src/datacortex/digest/formatter.py`
+4. `.datacore/commands/datacortex-digest.md`
 
 ## Files Modified
 
-1. `/Users/tex/repos/datacore/1-datafund/2-projects/datacortex/src/datacortex/cli/commands.py`
+1. `datacortex/src/datacortex/cli/commands.py`
    - Added `digest` command
 
 ## Notes

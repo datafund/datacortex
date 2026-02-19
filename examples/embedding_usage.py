@@ -172,7 +172,7 @@ def example_6_space_embeddings():
     print("Example 6: Space-wide Embeddings")
     print("="*60)
 
-    space = "personal"  # or "datafund", "datacore"
+    space = "personal"  # or "teamspace", "projectspace"
 
     try:
         print(f"\nComputing embeddings for space: {space}")

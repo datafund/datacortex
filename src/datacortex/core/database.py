@@ -49,15 +49,15 @@ try:
     # Override SPACES with our detected DATA_ROOT
     SPACES = {
         'personal': {'path': DATA_ROOT / '0-personal'},
-        'datafund': {'path': DATA_ROOT / '1-datafund'},
-        'datacore': {'path': DATA_ROOT / '2-datacore'},
+        'teamspace': {'path': DATA_ROOT / '1-teamspace'},
+        'projectspace': {'path': DATA_ROOT / '2-projectspace'},
     }
 except ImportError:
     HAS_ZETTEL_DB = False
     SPACES = {
         'personal': {'path': DATA_ROOT / '0-personal'},
-        'datafund': {'path': DATA_ROOT / '1-datafund'},
-        'datacore': {'path': DATA_ROOT / '2-datacore'},
+        'teamspace': {'path': DATA_ROOT / '1-teamspace'},
+        'projectspace': {'path': DATA_ROOT / '2-projectspace'},
     }
 
 
@@ -65,7 +65,7 @@ def get_connection(space: Optional[str] = None) -> sqlite3.Connection:
     """Get database connection for a space.
 
     Args:
-        space: Space name (personal, datafund, datacore) or None for root DB
+        space: Space name (personal, teamspace, projectspace) or None for root DB
 
     Returns:
         SQLite connection with row factory set

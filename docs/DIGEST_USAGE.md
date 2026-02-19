@@ -20,7 +20,7 @@ This will automatically:
 datacortex digest
 
 # Single space
-datacortex digest --space datafund
+datacortex digest --space teamspace
 
 # Custom threshold and limits
 datacortex digest --threshold 0.8 --top-n 30 --min-words 100
@@ -35,7 +35,7 @@ Before running the digest, you need to compute embeddings:
 datacortex embed
 
 # Compute for specific space
-datacortex embed --space datafund
+datacortex embed --space teamspace
 
 # Force recompute all
 datacortex embed --force
@@ -221,7 +221,7 @@ datacortex embed --force
 If running from subdirectory, set explicitly:
 
 ```bash
-export DATACORE_ROOT=/Users/tex/repos/datacore
+export DATACORE_ROOT=~/Data
 datacortex digest
 ```
 

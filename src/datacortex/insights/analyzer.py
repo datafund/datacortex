@@ -279,7 +279,7 @@ def analyze_single_cluster(cluster_id: int, spaces: list[str]) -> ClusterAnalysi
     members = clusters[cluster_id]
 
     # Get database connection for content loading
-    conn = get_connection(spaces[0]) if spaces else get_connection('datafund')
+    conn = get_connection(spaces[0]) if spaces else get_connection('personal')
 
     # Compute analysis
     stats = get_cluster_stats(members, graph.edges)
@@ -354,7 +354,7 @@ def analyze_clusters(spaces: list[str]) -> InsightsResult:
 
     if conn is None:
         # Fallback
-        conn = get_connection('datafund')
+        conn = get_connection('personal')
 
     # Analyze each cluster
     cluster_analyses = []

@@ -16,8 +16,8 @@
     --node-stub: #6b7280;
     --node-unknown: #64748b;
     --space-personal: #ec4899;
-    --space-datafund: #06b6d4;
-    --space-datacore: #84cc16;
+    --space-teamspace: #06b6d4;
+    --space-projectspace: #84cc16;
 }
 
 * {
@@ -391,8 +391,8 @@ body {
 
 /* Space colors */
 .space-personal { color: var(--space-personal); }
-.space-datafund { color: var(--space-datafund); }
-.space-datacore { color: var(--space-datacore); }
+.space-teamspace { color: var(--space-teamspace); }
+.space-projectspace { color: var(--space-projectspace); }
 
 /* Orphan list */
 .orphan-item {

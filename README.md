@@ -1,6 +1,6 @@
 # Datacortex
 
-Knowledge graph visualization and AI-powered analysis for [Datacore](https://github.com/datafund/datacore).
+Knowledge graph visualization and AI-powered analysis for [Datacore](https://github.com/datacore-system/datacore).
 
 ## Features
 
@@ -14,7 +14,7 @@ Knowledge graph visualization and AI-powered analysis for [Datacore](https://git
 ## Installation
 
 ```bash
-cd ~/Data/1-datafund/2-projects/datacortex
+cd /path/to/datacortex
 python3 -m venv .venv
 source .venv/bin/activate
 pip install -e .
@@ -48,7 +48,7 @@ The workspace provides a browser-based interface for working with your knowledge
 ├───────────────┬──────────────────────────────────┬───────────────────────┤
 │ File Tree     │  Markdown Editor (CodeMirror 6)  │ Knowledge Graph (D3)  │
 │ ├── 0-personal│  [Ask Claude] [Save] [Discard]   │ - Click node to open  │
-│ └── 1-datafund│                                  │ - Synced with editor  │
+│ └── 1-teamspace│                                 │ - Synced with editor  │
 ├───────────────┴──────────────────────────────────┴───────────────────────┤
 │ Claude Code Terminal (xterm.js) [Clear] [Reconnect]                      │
 └──────────────────────────────────────────────────────────────────────────┘
@@ -75,7 +75,7 @@ Or use `/datacortex workspace` from Claude Code.
 
 ```bash
 # Graph generation
-datacortex generate --spaces personal,datafund
+datacortex generate --spaces personal,teamspace
 datacortex stats
 
 # Pulse snapshots
@@ -239,7 +239,7 @@ Find "low-hanging fruit" - stubs to fill, orphans to integrate, underlinked cont
 ```bash
 datacortex opportunities              # Find research opportunities
 datacortex opportunities --top 20     # More results per category
-datacortex opportunities --space datafund  # Single space
+datacortex opportunities --space teamspace  # Single space
 ```
 
 **Example output:**
@@ -249,7 +249,7 @@ Fair Data Economy | 16 refs | 0.402 | stub, needs-content
 Bootstrap Liquidity Fund | 11 refs | 0.237 | stub, needs-content
 
 ## INTEGRATION_CANDIDATES
-The fund in Datafund | 9166w | unknown | research/The fund in Datafund.md
+Organization Overview | 9166w | unknown | research/Organization-Overview.md
 SemantiCord - Technical Overview | 3700w | unknown | research/SemantiCord.md
 
 ## UNDERLINKED_CONTENT
@@ -257,7 +257,7 @@ ChainLink | 3507w | 1 links | page
 Investment Thesis | 3337w | 2 links | page
 
 ## STUB_HEAVY_CLUSTERS
-Cluster 89 | 129 nodes | 127 stubs | 98% | Datahaven; Roam Network; Swarmy.cloud
+Cluster 89 | 129 nodes | 127 stubs | 98% | DataStore; Knowledge Network; CloudSync
 Cluster 1 | 41 nodes | 30 stubs | 73% | Triple-Sided Marketplace; AI Agents
 ```
 
@@ -270,7 +270,7 @@ Create `config/datacortex.local.yaml` to override defaults:
 ```yaml
 spaces:
   - personal
-  - datafund
+  - teamspace
 
 server:
   port: 8765

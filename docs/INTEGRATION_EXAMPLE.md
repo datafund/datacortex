@@ -76,7 +76,7 @@ datacortex insights --top 10
 ### 1. Setup (One-time)
 
 ```bash
-cd /Users/tex/repos/datacore/1-datafund/2-projects/datacortex
+cd /path/to/datacortex
 
 # Install datacortex
 pip install -e .
@@ -89,7 +89,7 @@ datacortex embed
 
 ```bash
 # Generate digest
-datacortex digest --space datafund --top-n 15 > /tmp/digest.txt
+datacortex digest --space teamspace --top-n 15 > /tmp/digest.txt
 
 # Review output
 cat /tmp/digest.txt
@@ -101,14 +101,14 @@ cat /tmp/digest.txt
 
 ## RECENTLY_CREATED created_within=7_days
 
-### Doc: "Verity Token Economics"
-path: 1-datafund/3-knowledge/pages/verity-tokenomics.md
+### Doc: "Project Alpha Token Economics"
+path: 1-teamspace/3-knowledge/pages/alpha-tokenomics.md
 words: 523
 created: 2025-12-03
 suggestions:
-  Data Tokenization Overview | 0.89 | 1-datafund/3-knowledge/zettel/data-tokenization.md
-  RWA Compliance Framework | 0.82 | 1-datafund/3-knowledge/pages/rwa-compliance.md
-  Token Distribution Model | 0.78 | 1-datafund/3-knowledge/literature/token-economics.md
+  Data Tokenization Overview | 0.89 | 1-teamspace/3-knowledge/zettel/data-tokenization.md
+  RWA Compliance Framework | 0.82 | 1-teamspace/3-knowledge/pages/rwa-compliance.md
+  Token Distribution Model | 0.78 | 1-teamspace/3-knowledge/literature/token-economics.md
 ```
 
 **Action**: Add wiki-links to the 3 suggested documents.
@@ -117,7 +117,7 @@ suggestions:
 
 ```bash
 # Detect gaps
-datacortex gaps --space datafund > /tmp/gaps.txt
+datacortex gaps --space teamspace > /tmp/gaps.txt
 
 # Review
 cat /tmp/gaps.txt
@@ -135,7 +135,7 @@ link_density: 0.06
 cross_links: 2
 
 ### SHARED_TAGS
-verity, platform, workflow
+alpha, platform, workflow
 
 ### BOUNDARY_NODES
 API Integration Guide
@@ -147,7 +147,7 @@ User Onboarding Flow
 - Add system diagrams showing end-to-end user journey
 ```
 
-**Action**: Create "Verity Platform Overview" document linking tech and UX.
+**Action**: Create "Project Alpha Platform Overview" document linking tech and UX.
 
 ### 4. Monthly Insights Review
 
@@ -174,7 +174,7 @@ integration.
 
 ### Key Themes
 - ERC-3643 token standard implementation
-- Swarm decentralized storage
+- Distributed decentralized storage
 - SPV structure for asset ownership
 - Data provenance and immutability
 
@@ -194,7 +194,7 @@ Need: Security audit documentation, disaster recovery procedures.
 Opportunity: Link technical capabilities to market positioning.
 
 ### Recommendations
-1. **Create**: "Verity Deployment Playbook" (tech → ops)
+1. **Create**: "Platform Deployment Playbook" (tech → ops)
 2. **Expand**: Security documentation with audit results
 3. **Link**: Token mechanics to competitive advantages
 4. **Bridge**: Technical architecture to user journeys
@@ -217,7 +217,7 @@ from datacortex.gaps.detector import detect_gaps
 from datacortex.digest.generator import generate_digest
 
 # Full analysis pipeline
-spaces = ['datafund']
+spaces = ['teamspace']
 
 # 1. Cluster insights
 insights = analyze_clusters(spaces)
@@ -291,7 +291,7 @@ def generate_monthly_report(spaces: list[str]):
     return output
 
 # Run
-report_path = generate_monthly_report(['datafund', 'personal'])
+report_path = generate_monthly_report(['teamspace', 'personal'])
 print(f"Report saved: {report_path}")
 ```
 
@@ -356,7 +356,7 @@ def post_to_slack(webhook_url: str, message: str):
     requests.post(webhook_url, json={'text': message})
 
 # Weekly insights to Slack
-insights = analyze_clusters(['datafund'])
+insights = analyze_clusters(['teamspace'])
 
 message = f"""
 📊 Weekly Knowledge Analysis

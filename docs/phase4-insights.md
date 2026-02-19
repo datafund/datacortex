@@ -6,7 +6,7 @@ Phase 4 implements cluster analysis and insight extraction for the Datacortex AI
 
 ## Location
 
-All files are in: `/Users/tex/repos/datacore/1-datafund/2-projects/datacortex/`
+All files are in: `datacortex/`
 
 ## Components
 
@@ -123,7 +123,7 @@ datacortex insights                     # All clusters summary
 datacortex insights --cluster 3         # Single cluster detail
 datacortex insights --no-samples        # Skip content samples
 datacortex insights --top 5             # Only top N clusters by size
-datacortex insights --space datafund    # Specific space only
+datacortex insights --space teamspace    # Specific space only
 ```
 
 **Options:**
@@ -138,7 +138,7 @@ datacortex insights --space datafund    # Specific space only
 
 ### 3. Datacore Command: `/.datacore/commands/datacortex-insights.md`
 
-Location: `/Users/tex/repos/datacore/.datacore/commands/datacortex-insights.md`
+Location: `.datacore/commands/datacortex-insights.md`
 
 This command integrates with Datacore's slash command system to provide AI-assisted insight synthesis.
 
@@ -192,7 +192,7 @@ from datacortex.insights.analyzer import analyze_clusters
 from datacortex.insights.formatter import format_insights
 
 # Analyze all clusters
-result = analyze_clusters(['datafund', 'personal'])
+result = analyze_clusters(['teamspace', 'personal'])
 
 # Format output
 formatted = format_insights(result, include_samples=True)
@@ -204,7 +204,7 @@ print(formatted)
 from datacortex.insights.analyzer import analyze_single_cluster
 
 # Analyze specific cluster
-analysis = analyze_single_cluster(cluster_id=3, spaces=['datafund'])
+analysis = analyze_single_cluster(cluster_id=3, spaces=['teamspace'])
 
 print(f"Cluster {analysis.cluster_id}: {analysis.size} documents")
 print(f"Density: {analysis.stats['density']}")
@@ -226,7 +226,7 @@ datacortex insights --top 5
 datacortex insights --cluster 3
 
 # Specific space
-datacortex insights --space datafund
+datacortex insights --space teamspace
 ```
 
 ### Integration with Datacore
@@ -254,8 +254,8 @@ avg_centrality: 0.012
 density: 0.08
 
 ### HUBS
-Data Tokenization | 0.045 | 523w | rwa,tokenization,verity
-Swarm Storage | 0.032 | 412w | storage,decentralized
+Data Tokenization | 0.045 | 523w | rwa,tokenization,platform
+Distributed Storage | 0.032 | 412w | storage,decentralized
 API Design | 0.028 | 298w | api,patterns
 
 ### TAGS
@@ -292,7 +292,7 @@ using blockchain infrastructure...
 
 ### Patterns
 Strong focus on technical implementation with moderate internal
-connectivity. Hub documents cover infrastructure (Swarm) and
+connectivity. Hub documents cover infrastructure (storage) and
 financial instruments (tokenization).
 
 ### Connections
@@ -401,21 +401,21 @@ Required packages (already in `pyproject.toml`):
 ## Files Created
 
 ### Source Code
-1. `/Users/tex/repos/datacore/1-datafund/2-projects/datacortex/src/datacortex/insights/__init__.py`
-2. `/Users/tex/repos/datacore/1-datafund/2-projects/datacortex/src/datacortex/insights/analyzer.py`
-3. `/Users/tex/repos/datacore/1-datafund/2-projects/datacortex/src/datacortex/insights/formatter.py`
+1. `datacortex/src/datacortex/insights/__init__.py`
+2. `datacortex/src/datacortex/insights/analyzer.py`
+3. `datacortex/src/datacortex/insights/formatter.py`
 
 ### CLI Integration
-4. `/Users/tex/repos/datacore/1-datafund/2-projects/datacortex/src/datacortex/cli/commands.py` (modified)
+4. `datacortex/src/datacortex/cli/commands.py` (modified)
 
 ### Datacore Command
-5. `/Users/tex/repos/datacore/.datacore/commands/datacortex-insights.md`
+5. `.datacore/commands/datacortex-insights.md`
 
 ### Tests
-6. `/Users/tex/repos/datacore/1-datafund/2-projects/datacortex/tests/test_insights.py`
+6. `datacortex/tests/test_insights.py`
 
 ### Documentation
-7. `/Users/tex/repos/datacore/1-datafund/2-projects/datacortex/docs/phase4-insights.md` (this file)
+7. `datacortex/docs/phase4-insights.md` (this file)
 
 ## Next Steps
 
@@ -423,7 +423,7 @@ After implementation:
 
 1. **Install/Update Package**
    ```bash
-   cd /Users/tex/repos/datacore/1-datafund/2-projects/datacortex
+   cd /path/to/datacortex
    pip install -e .
    ```
 

@@ -21,7 +21,7 @@ def format_gaps(result: GapsResult) -> str:
         cross_links: 2
 
         ### CLUSTER_3 size=47
-        HUBS: Data Tokenization, Swarm Storage, API Design
+        HUBS: Data Tokenization, Distributed Storage, API Design
         TAGS: tokenization(12), data(10), api(8)
 
         ### CLUSTER_7 size=23

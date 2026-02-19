@@ -1,8 +1,8 @@
 name: datacortex
 version: 0.1.0
 description: Knowledge graph visualization for Datacore
-author: datafund
-repository: https://github.com/datafund/datacortex
+author: datacore
+repository: https://github.com/datacore-system/datacortex
 
 dependencies: []
 

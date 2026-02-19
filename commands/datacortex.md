@@ -15,7 +15,7 @@ If user invoked `/datacortex` with no clear intent, ask:
 3. **Find orphans** - List unlinked documents
 4. **Take snapshot** - Create temporal pulse for tracking changes
 
-If intent is clear from context (e.g., "show me the datafund graph", "find orphan notes"), proceed directly to execution.
+If intent is clear from context (e.g., "show me the teamspace graph", "find orphan notes"), proceed directly to execution.
 
 ### Step 2: Space Selection
 
@@ -36,7 +36,7 @@ If `settings.datacortex.default_space` is set, use that without asking.
 
 **Explore (open visualization):**
 1. Check if datacortex is installed: `which datacortex`
-2. If not found, tell user: "Datacortex CLI not installed. Run: `cd ~/Data/1-datafund/2-projects/datacortex && pip install -e .`"
+2. If not found, tell user: "Datacortex CLI not installed. Run: `pip install -e .` from the datacortex directory."
 3. Check if server already running: `lsof -i :8765`
 4. If not running, start in background: `datacortex serve &`
 5. Wait briefly for server startup
@@ -83,7 +83,7 @@ User can configure in `~/.datacore/settings.local.yaml`:
 ```yaml
 datacortex:
   auto_serve: true        # Skip menu, open graph immediately
-  default_space: datafund # Don't ask for space selection
+  default_space: teamspace # Don't ask for space selection
   open_browser: true      # Auto-open browser (default)
   port: 8765              # Server port (default)
 ```
@@ -95,10 +95,9 @@ datacortex:
 Datacortex CLI is not installed.
 
 Install with:
-  cd ~/Data/1-datafund/2-projects/datacortex
   pip install -e .
 
-Or run the install script:
+From the datacortex module directory, or run the install script:
   ./install.sh
 ```
 

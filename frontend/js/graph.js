@@ -28,8 +28,8 @@ class GraphView {
             },
             spaces: {
                 personal: '#ec4899',
-                datafund: '#06b6d4',
-                datacore: '#84cc16'
+                teamspace: '#06b6d4',
+                projectspace: '#84cc16'
             }
         };
 

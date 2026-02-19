@@ -70,7 +70,7 @@ datacortex embed --space personal
 
 # Force recompute all (ignore cache)
 datacortex embed --force
-datacortex embed --space datafund --force
+datacortex embed --space teamspace --force
 ```
 
 ### Output Example
@@ -80,7 +80,7 @@ datacortex embed --space datafund --force
   DATACORTEX EMBEDDING COMPUTATION
 ==================================================
   Model: sentence-transformers/all-mpnet-base-v2
-  Spaces: personal, datafund
+  Spaces: personal, teamspace
   Mode: INCREMENTAL (cache enabled)
 ==================================================
 
@@ -90,7 +90,7 @@ Batches: 100%|████████████| 5/5 [00:12<00:00,  2.45s/it]
   Completed: 1500 documents in 12.5s
   Speed: 120.0 docs/sec
 
-Processing space: datafund
+Processing space: teamspace
 All embeddings up to date (using cache)
   Completed: 800 documents in 0.2s
 
@@ -274,8 +274,8 @@ export HF_HOME=/path/to/cache
 Embeddings are stored in each space's knowledge database:
 
 - Personal: `~/Data/0-personal/.datacore/knowledge.db`
-- Datafund: `~/Data/1-datafund/.datacore/knowledge.db`
-- Datacore: `~/Data/2-datacore/.datacore/knowledge.db`
+- Teamspace: `~/Data/1-teamspace/.datacore/knowledge.db`
+- Projectspace: `~/Data/2-projectspace/.datacore/knowledge.db`
 
 ## Troubleshooting
 
@@ -291,7 +291,7 @@ If you encounter OOM errors:
 2. Process spaces individually:
    ```bash
    datacortex embed --space personal
-   datacortex embed --space datafund
+   datacortex embed --space teamspace
    ```
 
 ### Slow Performance

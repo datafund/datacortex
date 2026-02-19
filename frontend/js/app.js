@@ -203,8 +203,8 @@ class Datacortex {
         const container = document.getElementById('space-filters');
         const colors = {
             personal: 'var(--space-personal)',
-            datafund: 'var(--space-datafund)',
-            datacore: 'var(--space-datacore)'
+            teamspace: 'var(--space-teamspace)',
+            projectspace: 'var(--space-projectspace)'
         };
 
         container.innerHTML = Object.entries(spaceStats).map(([space, count]) => `

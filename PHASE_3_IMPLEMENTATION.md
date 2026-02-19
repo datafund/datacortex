@@ -12,10 +12,10 @@ All components have been implemented and are ready for use.
 
 ### 1. Core Module Files
 
-#### `/Users/tex/repos/datacore/1-datafund/2-projects/datacortex/src/datacortex/gaps/__init__.py`
+#### `src/datacortex/gaps/__init__.py`
 - Empty init file marking the gaps module
 
-#### `/Users/tex/repos/datacore/1-datafund/2-projects/datacortex/src/datacortex/gaps/detector.py` (10.8 KB)
+#### `src/datacortex/gaps/detector.py` (10.8 KB)
 - `detect_gaps()` - Main gap detection function
 - `ClusterInfo` - Dataclass for cluster metadata (size, hubs, tags)
 - `KnowledgeGap` - Dataclass for gap representation
@@ -40,7 +40,7 @@ All components have been implemented and are ready for use.
 - `find_shared_tags()` - Tags appearing in both clusters
 - `count_cross_links()` - Count edges between clusters
 
-#### `/Users/tex/repos/datacore/1-datafund/2-projects/datacortex/src/datacortex/gaps/formatter.py` (3.5 KB)
+#### `src/datacortex/gaps/formatter.py` (3.5 KB)
 - `format_gaps()` - Formats GapsResult as compact TSV/markdown
 - Output includes:
   - Gap rank and score
@@ -60,7 +60,7 @@ link_density: 0.02
 cross_links: 2
 
 ### CLUSTER_3 size=47
-HUBS: Data Tokenization, Swarm Storage, API Design
+HUBS: Data Tokenization, Distributed Storage, API Design
 TAGS: tokenization(12), data(10), api(8)
 
 ### CLUSTER_7 size=23
@@ -73,7 +73,7 @@ BOUNDARY_NODES: Market Data Feed
 
 ### 2. CLI Integration
 
-#### `/Users/tex/repos/datacore/1-datafund/2-projects/datacortex/src/datacortex/cli/commands.py`
+#### `src/datacortex/cli/commands.py`
 Added `gaps` command with options:
 - `datacortex gaps` - Detect gaps for all spaces
 - `datacortex gaps --space personal` - Single space
@@ -83,7 +83,7 @@ Output written to: `/tmp/datacortex_gaps_{timestamp}.txt`
 
 ### 3. Datacore Command
 
-#### `/Users/tex/repos/datacore/.datacore/commands/datacortex-gaps.md`
+#### `.datacore/commands/datacortex-gaps.md`
 Complete command documentation including:
 - Overview of knowledge gaps concept
 - Synthesis guidelines for Claude
@@ -238,4 +238,4 @@ Potential improvements for future phases:
 
 **Status**: Phase 3 Complete
 **Date**: 2025-12-10
-**Location**: `/Users/tex/repos/datacore/1-datafund/2-projects/datacortex/`
+**Location**: `src/datacortex/`

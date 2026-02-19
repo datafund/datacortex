@@ -281,10 +281,10 @@ def search(query: str, spaces: list[str], top_k: int = 5, expand: bool = True) -
             path = meta.get('path', '')
             if '0-personal/' in path or '/0-personal/' in path:
                 space_key = 'personal'
-            elif '1-datafund/' in path or '/1-datafund/' in path:
-                space_key = 'datafund'
-            elif '2-datacore/' in path or '/2-datacore/' in path:
-                space_key = 'datacore'
+            elif '1-teamspace/' in path or '/1-teamspace/' in path:
+                space_key = 'teamspace'
+            elif '2-projectspace/' in path or '/2-projectspace/' in path:
+                space_key = 'projectspace'
             else:
                 # Try to infer from spaces list
                 space_key = spaces[0] if spaces else 'personal'
@@ -324,10 +324,10 @@ def search(query: str, spaces: list[str], top_k: int = 5, expand: bool = True) -
         # Match both relative and absolute paths
         if '0-personal/' in path or '/0-personal/' in path:
             space_key = 'personal'
-        elif '1-datafund/' in path or '/1-datafund/' in path:
-            space_key = 'datafund'
-        elif '2-datacore/' in path or '/2-datacore/' in path:
-            space_key = 'datacore'
+        elif '1-teamspace/' in path or '/1-teamspace/' in path:
+            space_key = 'teamspace'
+        elif '2-projectspace/' in path or '/2-projectspace/' in path:
+            space_key = 'projectspace'
         else:
             space_key = spaces[0] if spaces else 'personal'
 
