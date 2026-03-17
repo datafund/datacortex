@@ -1,111 +1,61 @@
-# Datacortex
+---
+summary: "Knowledge graph — semantic search, graph statistics, link analysis, and visualization"
+triggers: ["knowledge graph", "search for", "find backlinks", "orphan documents", "graph stats"]
+context: on_match
+---
 
-Knowledge graph visualization for Datacore.
+# Datacortex Module
 
-## Overview
+## Purpose
 
-Datacortex indexes Datacore knowledge bases (markdown files, org-mode tasks) and generates interactive graph visualizations showing how documents are connected through wiki-links and tags.
+Indexes Datacore knowledge bases (markdown, org-mode) and provides semantic search, link analysis, and interactive graph visualization. Shows how documents connect through wiki-links and tags. Includes temporal pulse snapshots for tracking knowledge growth over time.
 
-## Structure
+## Quick Start
+> Say "knowledge graph" to launch the interactive graph explorer.
+
+## How It Works
+
+### Indexing & Search
+Reads from the shared zettel database (`zettel_db.py`). Provides full-text search, backlink discovery, orphan detection, and task queries across all indexed content.
+
+### Graph Visualization
+D3.js force-directed graph with zoom/pan, node filtering (space, type, degree), timeline slider for pulse history, and minimap. Served via FastAPI on port 8765.
+
+### Pulse Snapshots
+Timestamped graph snapshots for tracking how the knowledge base evolves. Generate, list, and diff pulses over time.
+
+## Agents & Commands
+
+| Name | Type | When to use |
+|------|------|-------------|
+| `/datacortex` | command | Interactive graph exploration with web UI |
+| `datacortex` | skill | Knowledge graph queries and visualization |
+| `search` | tool | Full-text search across indexed content |
+| `backlinks` | tool | Find all documents linking to a file |
+| `orphans` | tool | Find unlinked documents |
+| `stats` | tool | Graph and database statistics |
+| `tasks` | tool | Query tasks from indexed org files |
+| `patterns` | tool | Query learning patterns |
+| `find_by_skill` | tool | Find agents by skill keyword |
+
+## Key Paths
+
+| Path | Purpose |
+|------|---------|
+| `src/datacortex/` | Python package (core, indexer, metrics, pulse, api, cli) |
+| `frontend/` | D3.js graph visualization |
+| `config/datacortex.yaml` | Base configuration |
+| `config/datacortex.local.yaml` | User overrides (gitignored) |
+| `pulses/` | Generated snapshots (gitignored) |
+
+## Setup
 
 ```
-src/datacortex/
-├── core/           # Models, config, database wrapper
-├── indexer/        # File scanning, graph building from zettel_db
-├── metrics/        # NetworkX centrality, Louvain clustering
-├── pulse/          # Temporal snapshots
-├── api/            # FastAPI backend
-└── cli/            # Click CLI commands
-
-frontend/           # D3.js force-directed graph visualization
-config/             # YAML configuration
-pulses/             # Generated snapshots (gitignored)
+cd /path/to/datacortex && pip install -e .
 ```
 
-## Key Patterns
+Reuses `~/.datacore/lib/zettel_db.py` and `zettel_processor.py` -- no separate database setup needed.
 
-### Reuses Datacore Infrastructure
+---
 
-This project reads from the existing Datacore knowledge database:
-- `~/.datacore/lib/zettel_db.py` - Database connection and schema
-- `~/.datacore/lib/zettel_processor.py` - Link extraction patterns
-
-Import pattern:
-```python
-import sys
-from pathlib import Path
-sys.path.insert(0, str(Path.home() / "Data" / ".datacore" / "lib"))
-from zettel_db import get_connection
-```
-
-### Data Models
-
-- **Node**: Document with metrics (degree, centrality, cluster)
-- **Edge**: Wiki-link between documents
-- **Graph**: Collection of nodes + edges with stats
-- **Pulse**: Timestamped graph snapshot
-
-### Configuration
-
-Base config in `config/datacortex.yaml`, user overrides in `config/datacortex.local.yaml` (gitignored).
-
-## CLI Commands
-
-```bash
-datacortex generate     # Output graph JSON to stdout
-datacortex stats        # Show graph statistics
-datacortex pulse generate/list/diff
-datacortex serve        # Start FastAPI server on :8765
-datacortex orphans      # Find unlinked documents
-```
-
-## API Endpoints
-
-- `GET /api/graph` - Current graph (filterable)
-- `GET /api/pulse` - List pulses
-- `GET /api/pulse/{id}` - Get specific pulse
-- `POST /api/pulse/generate` - Create new pulse
-- `GET /api/nodes/{id}` - Node details
-- `GET /api/nodes/search?q=` - Search nodes
-
-## Frontend
-
-D3.js force-directed graph with:
-- Zoom/pan navigation
-- Node click for details
-- Filter controls (space, type, degree)
-- Timeline slider for pulse history
-- Minimap with viewport indicator
-- Physics toggle and graph controls
-
-## Module Integration
-
-This module follows the Datacore module pattern:
-- `module.yaml` - Module manifest
-- `CLAUDE.base.md` - PUBLIC layer (this file)
-- `CLAUDE.space.md` - SPACE layer (gitignored, for space-specific notes)
-- `CLAUDE.local.md` - PRIVATE layer (gitignored, for personal notes)
-- `commands/datacortex.md` - Slash command definition
-
-### Installation as Module
-
-```bash
-# Symlink into modules directory
-cd ~/Data/.datacore/modules
-ln -s /path/to/datacortex datacortex
-
-# Or clone directly
-git clone https://github.com/datacore-system/datacortex.git
-```
-
-### Python Installation
-
-```bash
-cd /path/to/datacortex
-pip install -e .
-```
-
-## Related Documentation
-
-- [Datacore Module Specification](https://github.com/datacore-system/datacore/blob/main/.datacore/specs/datacore-specification.md#modules)
-- [DIP-0002: Layered Context Pattern](https://github.com/datacore-system/datacore/blob/main/.datacore/dips/DIP-0002-layered-context-pattern.md)
+*This file covers structure, capability, and stable configuration. Learned behavior, user corrections, and operational preferences live as engrams -- call `datacore.recall` for those.*
