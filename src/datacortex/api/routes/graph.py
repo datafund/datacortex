@@ -16,7 +16,7 @@ async def get_graph(
     spaces: Optional[str] = Query(None, description="Comma-separated list of spaces"),
     types: Optional[str] = Query(None, description="Comma-separated list of node types"),
     min_degree: int = Query(0, description="Minimum degree filter"),
-    include_stubs: bool = Query(True, description="Include stub nodes"),
+    include_stubs: bool = Query(True, description="Include stub nodes (deprecated, no-op)"),
 ):
     """Get current graph data for D3 visualization.
 
@@ -193,7 +193,7 @@ async def get_tags():
     tag_counts = Counter()
     for node in graph.nodes:
         for tag in node.tags:
-            if tag and tag not in ['stub', 'needs-content']:  # Skip system tags
+            if tag:
                 tag_counts[tag] += 1
 
     # Get top 30 tags
