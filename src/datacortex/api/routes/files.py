@@ -94,9 +94,13 @@ async def search_files(
     results = []
 
     q_lower = q.lower()
+    files_scanned = 0
+    max_files_scan = 5000
 
     for path in root.rglob("*"):
         if len(results) >= limit:
+            break
+        if files_scanned >= max_files_scan:
             break
 
         # Skip non-content files
@@ -104,6 +108,8 @@ async def search_files(
             continue
         if path.suffix.lower() not in [".md", ".org", ".txt"]:
             continue
+
+        files_scanned += 1
 
         # Skip hidden and system paths
         rel_path = str(path.relative_to(root))
@@ -144,7 +150,14 @@ async def search_files(
         except Exception:
             pass
 
-    return {"query": q, "results": results, "total": len(results)}
+    truncated = files_scanned >= max_files_scan and len(results) < limit
+    return {
+        "query": q,
+        "results": results,
+        "total": len(results),
+        "files_scanned": files_scanned,
+        "truncated": truncated,
+    }
 
 
 @router.get("/content/{path:path}")

@@ -3,6 +3,8 @@
 from dataclasses import dataclass
 from datetime import datetime
 
+import re
+
 import numpy as np
 
 from ..ai.cache import get_cached_embedding, init_embeddings_table
@@ -10,6 +12,20 @@ from ..ai.embeddings import embed_text
 from ..ai.similarity import cosine_similarity
 from ..core.database import get_connection
 from .ranker import rerank_results
+
+
+def _detect_space_from_path(path: str, spaces: list[str]) -> str:
+    """Detect space key from a file path by matching [0-9]-name/ pattern."""
+    match = re.search(r'(\d+)-([^/]+)/', path)
+    if match:
+        name = match.group(2)
+        if name in spaces:
+            return name
+        # Try matching without number prefix
+        for s in spaces:
+            if s == name or path.find(f'{match.group(0)}') >= 0:
+                return s
+    return spaces[0] if spaces else 'personal'
 
 
 @dataclass
@@ -277,17 +293,9 @@ def search(query: str, spaces: list[str], top_k: int = 5, expand: bool = True) -
         space_candidates = {}
         for file_id in top_10_candidates:
             meta = all_metadata.get(file_id, {})
-            # Determine space from path - match both relative and absolute
+            # Determine space from path dynamically
             path = meta.get('path', '')
-            if '0-personal/' in path or '/0-personal/' in path:
-                space_key = 'personal'
-            elif '1-teamspace/' in path or '/1-teamspace/' in path:
-                space_key = 'teamspace'
-            elif '2-projectspace/' in path or '/2-projectspace/' in path:
-                space_key = 'projectspace'
-            else:
-                # Try to infer from spaces list
-                space_key = spaces[0] if spaces else 'personal'
+            space_key = _detect_space_from_path(path, spaces)
 
             if space_key not in space_candidates:
                 space_candidates[space_key] = []
@@ -321,15 +329,7 @@ def search(query: str, spaces: list[str], top_k: int = 5, expand: bool = True) -
     for file_id, _, _ in top_results:
         meta = all_metadata.get(file_id, {})
         path = meta.get('path', '')
-        # Match both relative and absolute paths
-        if '0-personal/' in path or '/0-personal/' in path:
-            space_key = 'personal'
-        elif '1-teamspace/' in path or '/1-teamspace/' in path:
-            space_key = 'teamspace'
-        elif '2-projectspace/' in path or '/2-projectspace/' in path:
-            space_key = 'projectspace'
-        else:
-            space_key = spaces[0] if spaces else 'personal'
+        space_key = _detect_space_from_path(path, spaces)
 
         if space_key not in space_file_ids:
             space_file_ids[space_key] = []

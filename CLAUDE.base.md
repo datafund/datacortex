@@ -58,4 +58,4 @@ Reuses `~/.datacore/lib/zettel_db.py` and `zettel_processor.py` -- no separate d
 
 ---
 
-*This file covers structure, capability, and stable configuration. Learned behavior, user corrections, and operational preferences live as engrams -- call `datacore.recall` for those.*
+*This file covers structure, capability, and stable configuration. Learned behavior, user corrections, and operational preferences live as engrams -- call `plur_recall_hybrid` for those.*

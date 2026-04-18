@@ -43,22 +43,22 @@ if str(DATACORE_LIB) not in sys.path:
     sys.path.insert(0, str(DATACORE_LIB))
 
 # Try to import from zettel_db, fall back to direct implementation
+def _discover_spaces():
+    """Discover spaces dynamically from [0-9]-* directories."""
+    spaces = {}
+    for d in sorted(DATA_ROOT.iterdir()):
+        if d.is_dir() and d.name[:1].isdigit():
+            name = d.name.split('-', 1)[1] if '-' in d.name else d.name
+            spaces[name] = {'path': d}
+    return spaces
+
 try:
     from zettel_db import get_connection as _get_connection, SPACES as _SPACES
     HAS_ZETTEL_DB = True
-    # Override SPACES with our detected DATA_ROOT
-    SPACES = {
-        'personal': {'path': DATA_ROOT / '0-personal'},
-        'teamspace': {'path': DATA_ROOT / '1-teamspace'},
-        'projectspace': {'path': DATA_ROOT / '2-projectspace'},
-    }
+    SPACES = _SPACES  # Use zettel_db's dynamically discovered spaces
 except ImportError:
     HAS_ZETTEL_DB = False
-    SPACES = {
-        'personal': {'path': DATA_ROOT / '0-personal'},
-        'teamspace': {'path': DATA_ROOT / '1-teamspace'},
-        'projectspace': {'path': DATA_ROOT / '2-projectspace'},
-    }
+    SPACES = _discover_spaces()
 
 
 def get_connection(space: Optional[str] = None) -> sqlite3.Connection:

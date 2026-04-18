@@ -9,9 +9,22 @@ import fcntl
 import termios
 from typing import Optional
 
-from fastapi import APIRouter, WebSocket, WebSocketDisconnect
+from fastapi import APIRouter, Query, WebSocket, WebSocketDisconnect
 
 router = APIRouter()
+
+
+def _check_ws_token(token: Optional[str]) -> bool:
+    """Verify WebSocket token against DATACORTEX_API_TOKEN.
+
+    Returns True if access should be allowed:
+    - When no API token is configured (local dev), always allow.
+    - When API token is configured, require matching token query param.
+    """
+    expected = os.environ.get("DATACORTEX_API_TOKEN")
+    if not expected:
+        return True  # auth not enabled
+    return token == expected
 
 
 class TerminalSession:
@@ -123,8 +136,17 @@ _sessions: dict[str, TerminalSession] = {}
 
 
 @router.websocket("")
-async def terminal_websocket(websocket: WebSocket):
-    """WebSocket endpoint for terminal communication."""
+async def terminal_websocket(
+    websocket: WebSocket,
+    token: Optional[str] = Query(default=None),
+):
+    """WebSocket endpoint for terminal communication.
+
+    Auth via query param: ws://host/api/terminal?token=<token>
+    """
+    if not _check_ws_token(token):
+        await websocket.close(code=4401, reason="Invalid or missing token")
+        return
     await websocket.accept()
 
     session = TerminalSession()

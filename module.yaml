@@ -1,28 +1,42 @@
+manifest_version: 2
 name: datacortex
-version: 0.1.0
-description: Knowledge graph visualization for Datacore
-author: datacore
-repository: https://github.com/datacore-system/datacortex
-
-dependencies: []
+version: 0.2.0
+description: "Knowledge graph — semantic search, graph statistics, link analysis, and visualization"
+author: datacore-one
+repository: https://github.com/datacore-one/datacortex
+license: MIT
+builtin: true
 
 provides:
+  tools:
+    - name: search
+      description: "Full-text search across all indexed content"
+      handler: tools/index.js
+    - name: stats
+      description: "Graph and database statistics (node counts, link density, table sizes)"
+      handler: tools/index.js
+    - name: backlinks
+      description: "Find all documents linking to a given file path"
+      handler: tools/index.js
+    - name: orphans
+      description: "Find unlinked documents (no incoming/outgoing links)"
+      handler: tools/index.js
+    - name: tasks
+      description: "Query tasks from indexed org files"
+      handler: tools/index.js
+    - name: patterns
+      description: "Query learning patterns from indexed data"
+      handler: tools/index.js
+    - name: find_by_skill
+      description: "Find agents by skill keyword (substring match)"
+      handler: tools/index.js
   skills:
-    - datacortex   # Knowledge graph visualization
+    - datacortex  # Knowledge graph exploration and visualization
+  agents: []
+  commands:
+    - datacortex  # Interactive graph exploration with web UI
 
-# Settings (user can override in settings.local.yaml under datacortex:)
-settings:
-  auto_serve: false           # Auto-start server on /datacortex
-  default_space: null         # Default space to visualize (null = ask user)
-  open_browser: true          # Open browser when server starts
-  port: 8765
-
-# Use cases (for discoverability)
-use_cases:
-  - Visualize knowledge graph connections
-  - Find orphan notes (unlinked documents)
-  - Track graph evolution over time
-  - Identify knowledge clusters
+dependencies: []
 
 # Python package info
 python:
@@ -30,18 +44,18 @@ python:
   entry_point: datacortex.cli.commands:cli
   install: pip install -e .
 
-# Configuration files
-config:
-  base: config/datacortex.yaml
-  local: config/datacortex.local.yaml  # gitignored
+# Settings (user can override in settings.local.yaml under datacortex:)
+settings:
+  auto_serve: false
+  default_space: null
+  open_browser: true
+  port: 8765
 
-# Installation hooks
-hooks:
-  post_install: |
-    echo "Datacortex installed."
-    echo "Run /datacortex to start exploring your knowledge graph."
+# DIP-0022 context
+context:
+  priority: on_match
 
-# Documentation
-docs:
-  readme: README.md
-  claude: CLAUDE.base.md
+# Engrams
+engrams:
+  namespace: datacortex
+  scopes: [datacortex, knowledge-graph]
