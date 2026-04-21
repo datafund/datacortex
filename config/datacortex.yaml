@@ -16,7 +16,7 @@ server:
 
 # Pulse settings
 pulse:
-  directory: pulses
+  directory: .datacore/pulses
   schedule: manual  # daily, weekly, manual
 
 # Graph generation settings
