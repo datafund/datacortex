@@ -1,3 +1,14 @@
+---
+name: datacortex
+description: datacortex command
+recall:
+  # DIP-0029 default — engrams scoped to this command + tag-matched.
+  scopes:
+    - command:datacortex
+  tags:
+    - datacortex
+---
+
 # /datacortex
 
 Knowledge graph visualization for your Datacore installation.
