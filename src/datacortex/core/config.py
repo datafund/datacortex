@@ -39,7 +39,7 @@ class VisualizationConfig(BaseModel):
 class DatacortexConfig(BaseModel):
     """Main configuration for Datacortex."""
     datacore_root: Path = Field(default_factory=lambda: DATA_ROOT)
-    spaces: list[str] = Field(default_factory=lambda: ["personal", "datafund"])
+    spaces: list[str] = Field(default_factory=lambda: ["personal", "teamspace"])
     server: ServerConfig = Field(default_factory=ServerConfig)
     pulse: PulseConfig = Field(default_factory=PulseConfig)
     graph: GraphConfig = Field(default_factory=GraphConfig)

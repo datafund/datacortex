@@ -1,0 +1,1513 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Datacortex Workspace</title>
+
+    <!-- xterm.js from CDN (clean, unmodified) -->
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/xterm@5.3.0/css/xterm.css">
+    <script src="https://cdn.jsdelivr.net/npm/xterm@5.3.0/lib/xterm.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/xterm-addon-fit@0.8.0/lib/xterm-addon-fit.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/xterm-addon-web-links@0.9.0/lib/xterm-addon-web-links.js"></script>
+
+    <!-- CodeMirror 6 -->
+    <script type="module">
+        import {EditorView, basicSetup} from "https://esm.sh/@codemirror/basic-setup@0.20.0";
+        import {markdown} from "https://esm.sh/@codemirror/lang-markdown@6.2.5";
+        import {oneDark} from "https://esm.sh/@codemirror/theme-one-dark@6.1.2";
+        window.EditorView = EditorView;
+        window.basicSetup = basicSetup;
+        window.markdown = markdown;
+        window.oneDark = oneDark;
+        window.cmLoaded = true;
+    </script>
+
+    <style>
+        :root {
+            --bg-primary: #1a1b26;
+            --bg-secondary: #24283b;
+            --bg-tertiary: #414868;
+            --text-primary: #c0caf5;
+            --text-secondary: #9aa5ce;
+            --text-muted: #565f89;
+            --accent: #7aa2f7;
+            --accent-hover: #89b4fa;
+            --border: #414868;
+            --success: #9ece6a;
+            --warning: #e0af68;
+            --error: #f7768e;
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'JetBrains Mono', 'Fira Code', 'SF Mono', monospace;
+            background: var(--bg-primary);
+            color: var(--text-primary);
+            height: 100vh;
+            overflow: hidden;
+        }
+
+        /* Main Layout */
+        .workspace {
+            display: grid;
+            grid-template-columns: 280px 1fr 0;
+            grid-template-rows: auto 1fr auto;
+            height: 100vh;
+            gap: 1px;
+            background: var(--border);
+            transition: grid-template-columns 0.2s ease;
+        }
+
+        .workspace.graph-open {
+            grid-template-columns: 280px 1fr 400px;
+        }
+
+        /* Header */
+        .header {
+            grid-column: 1 / -1;
+            background: var(--bg-secondary);
+            padding: 8px 16px;
+            display: flex;
+            align-items: center;
+            gap: 16px;
+            border-bottom: 1px solid var(--border);
+        }
+
+        .header h1 {
+            font-size: 14px;
+            font-weight: 600;
+            color: var(--accent);
+        }
+
+        .search-box {
+            flex: 1;
+            max-width: 400px;
+            position: relative;
+        }
+
+        .search-box input {
+            width: 100%;
+            padding: 6px 12px 6px 32px;
+            background: var(--bg-primary);
+            border: 1px solid var(--border);
+            border-radius: 4px;
+            color: var(--text-primary);
+            font-size: 13px;
+            font-family: inherit;
+        }
+
+        .search-box input:focus {
+            outline: none;
+            border-color: var(--accent);
+        }
+
+        .search-box::before {
+            content: ">";
+            position: absolute;
+            left: 12px;
+            top: 50%;
+            transform: translateY(-50%);
+            color: var(--text-muted);
+        }
+
+        .links-dropdown {
+            position: relative;
+        }
+
+        .links-dropdown select {
+            padding: 6px 24px 6px 12px;
+            background: var(--bg-primary);
+            border: 1px solid var(--border);
+            border-radius: 4px;
+            color: var(--text-primary);
+            font-size: 13px;
+            font-family: inherit;
+            cursor: pointer;
+            appearance: none;
+        }
+
+        .links-dropdown::after {
+            content: "v";
+            position: absolute;
+            right: 10px;
+            top: 50%;
+            transform: translateY(-50%);
+            color: var(--text-muted);
+            pointer-events: none;
+            font-size: 10px;
+        }
+
+        /* Sidebar - File Tree */
+        .sidebar {
+            background: var(--bg-secondary);
+            display: flex;
+            flex-direction: column;
+            overflow: hidden;
+        }
+
+        .sidebar-header {
+            padding: 12px;
+            border-bottom: 1px solid var(--border);
+            font-size: 11px;
+            text-transform: uppercase;
+            color: var(--text-muted);
+            letter-spacing: 0.5px;
+        }
+
+        .file-tree {
+            flex: 1;
+            overflow-y: auto;
+            padding: 8px 0;
+        }
+
+        .tree-item {
+            padding: 4px 12px 4px 16px;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            font-size: 13px;
+            color: var(--text-secondary);
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+
+        .tree-item:hover {
+            background: var(--bg-tertiary);
+        }
+
+        .tree-item.selected {
+            background: var(--accent);
+            color: var(--bg-primary);
+        }
+
+        .tree-item.directory {
+            font-weight: 500;
+        }
+
+        .tree-item .icon {
+            width: 16px;
+            text-align: center;
+            font-size: 12px;
+        }
+
+        .tree-children {
+            margin-left: 12px;
+        }
+
+        .tree-item.collapsed + .tree-children {
+            display: none;
+        }
+
+        /* Main Content - Editor */
+        .main-content {
+            background: var(--bg-primary);
+            display: flex;
+            flex-direction: column;
+            overflow: hidden;
+        }
+
+        .editor-header {
+            padding: 8px 16px;
+            background: var(--bg-secondary);
+            border-bottom: 1px solid var(--border);
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+        }
+
+        .editor-path {
+            font-size: 13px;
+            color: var(--text-secondary);
+        }
+
+        .editor-actions {
+            display: flex;
+            gap: 8px;
+        }
+
+        .editor-actions button {
+            padding: 4px 12px;
+            background: var(--bg-tertiary);
+            border: none;
+            border-radius: 4px;
+            color: var(--text-primary);
+            font-size: 12px;
+            font-family: inherit;
+            cursor: pointer;
+        }
+
+        .editor-actions button:hover {
+            background: var(--accent);
+            color: var(--bg-primary);
+        }
+
+        .editor-actions button.save {
+            background: var(--success);
+            color: var(--bg-primary);
+        }
+
+        .editor-container {
+            flex: 1;
+            overflow: hidden;
+            position: relative;
+        }
+
+        #editor {
+            height: 100%;
+        }
+
+        .cm-editor {
+            height: 100%;
+            font-size: 14px;
+        }
+
+        .cm-scroller {
+            overflow: auto;
+        }
+
+        /* Terminal */
+        .terminal-section {
+            grid-column: 1 / -1;
+            background: var(--bg-primary);
+            display: flex;
+            flex-direction: column;
+            height: 300px;
+            border-top: 1px solid var(--border);
+            overflow: hidden;
+            position: relative;
+        }
+
+        .terminal-header {
+            padding: 8px 16px;
+            background: var(--bg-secondary);
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            border-bottom: 1px solid var(--border);
+        }
+
+        .terminal-header span {
+            font-size: 11px;
+            text-transform: uppercase;
+            color: var(--text-muted);
+            letter-spacing: 0.5px;
+        }
+
+        .terminal-actions button {
+            padding: 2px 8px;
+            background: transparent;
+            border: 1px solid var(--border);
+            border-radius: 4px;
+            color: var(--text-secondary);
+            font-size: 11px;
+            cursor: pointer;
+        }
+
+        .terminal-actions button:hover {
+            border-color: var(--accent);
+            color: var(--accent);
+        }
+
+        #terminal-container {
+            flex: 1;
+            padding: 8px;
+            overflow: hidden;
+            position: relative;
+            min-height: 0; /* Critical for flex child */
+        }
+
+        /* Ensure xterm stays contained */
+        #terminal-container .xterm {
+            height: 100% !important;
+            overflow: hidden !important;
+        }
+
+        #terminal-container .xterm-viewport {
+            overflow-y: auto !important;
+            overflow-x: hidden !important;
+        }
+
+        #terminal-container .xterm-screen {
+            overflow: hidden !important;
+            position: relative !important;
+        }
+
+        #terminal-container .xterm-rows {
+            overflow: hidden !important;
+            position: relative !important;
+            max-height: 100% !important;
+        }
+
+        /* Clip any xterm row divs that overflow */
+        #terminal-container .xterm-rows > div {
+            max-width: 100% !important;
+        }
+
+        /* Hide xterm accessibility layer that might show duplicate content */
+        #terminal-container .xterm-accessibility {
+            display: none !important;
+        }
+
+        #terminal-container .xterm-accessibility-tree {
+            display: none !important;
+        }
+
+        /* Hide xterm overflow rows that appear outside viewport */
+        .terminal-section > div:not(.terminal-header):not(#terminal-container) {
+            display: none !important;
+        }
+
+        /* Search Results Overlay */
+        .search-results {
+            position: absolute;
+            top: 100%;
+            left: 0;
+            right: 0;
+            background: var(--bg-secondary);
+            border: 1px solid var(--border);
+            border-top: none;
+            border-radius: 0 0 4px 4px;
+            max-height: 300px;
+            overflow-y: auto;
+            z-index: 100;
+            display: none;
+        }
+
+        .search-results.visible {
+            display: block;
+        }
+
+        .search-result {
+            padding: 8px 12px;
+            cursor: pointer;
+            border-bottom: 1px solid var(--border);
+        }
+
+        .search-result:hover {
+            background: var(--bg-tertiary);
+        }
+
+        .search-result:last-child {
+            border-bottom: none;
+        }
+
+        .search-result .path {
+            font-size: 12px;
+            color: var(--text-secondary);
+        }
+
+        .search-result .preview {
+            font-size: 11px;
+            color: var(--text-muted);
+            margin-top: 4px;
+        }
+
+        /* Status Bar */
+        .status-bar {
+            grid-column: 1 / -1;
+            background: var(--bg-tertiary);
+            padding: 4px 16px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            font-size: 11px;
+            color: var(--text-muted);
+        }
+
+        .status-bar .connected {
+            color: var(--success);
+        }
+
+        .status-bar .disconnected {
+            color: var(--error);
+        }
+
+        /* Resizer */
+        .resizer {
+            grid-column: 1 / -1;
+            height: 4px;
+            background: var(--border);
+            cursor: ns-resize;
+        }
+
+        .resizer:hover {
+            background: var(--accent);
+        }
+
+        /* Scrollbar */
+        ::-webkit-scrollbar {
+            width: 8px;
+            height: 8px;
+        }
+
+        ::-webkit-scrollbar-track {
+            background: var(--bg-primary);
+        }
+
+        ::-webkit-scrollbar-thumb {
+            background: var(--bg-tertiary);
+            border-radius: 4px;
+        }
+
+        ::-webkit-scrollbar-thumb:hover {
+            background: var(--text-muted);
+        }
+
+        /* Graph Panel (docked right) */
+        .graph-panel {
+            grid-row: 2 / 4;
+            grid-column: 3;
+            background: var(--bg-primary);
+            display: flex;
+            flex-direction: column;
+            overflow: hidden;
+            border-left: 1px solid var(--border);
+        }
+
+        .graph-panel-header {
+            padding: 12px 16px;
+            background: var(--bg-secondary);
+            border-bottom: 1px solid var(--border);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .graph-panel-header h2 {
+            font-size: 11px;
+            font-weight: 600;
+            text-transform: uppercase;
+            color: var(--text-muted);
+            letter-spacing: 0.5px;
+        }
+
+        .graph-panel-close {
+            background: none;
+            border: none;
+            color: var(--text-muted);
+            font-size: 16px;
+            cursor: pointer;
+            padding: 2px 6px;
+        }
+
+        .graph-panel-close:hover {
+            color: var(--text-primary);
+        }
+
+        .graph-container {
+            flex: 1;
+            position: relative;
+            min-height: 0;
+        }
+
+        .graph-container svg {
+            width: 100%;
+            height: 100%;
+        }
+
+        .graph-tooltip {
+            position: absolute;
+            background: var(--bg-secondary);
+            border: 1px solid var(--border);
+            border-radius: 4px;
+            padding: 8px 12px;
+            font-size: 12px;
+            pointer-events: none;
+            display: none;
+            z-index: 1001;
+        }
+
+        .graph-tooltip.visible {
+            display: block;
+        }
+
+        /* Highlighted node in graph */
+        .graph-node-highlight {
+            stroke: var(--accent) !important;
+            stroke-width: 3px !important;
+        }
+
+        .header-btn {
+            padding: 6px 12px;
+            background: var(--bg-primary);
+            border: 1px solid var(--border);
+            border-radius: 4px;
+            color: var(--text-primary);
+            font-size: 12px;
+            font-family: inherit;
+            cursor: pointer;
+            text-decoration: none;
+        }
+
+        .header-btn:hover {
+            background: var(--accent);
+            color: var(--bg-primary);
+            border-color: var(--accent);
+        }
+
+        .header-btn.active {
+            background: var(--accent);
+            color: var(--bg-primary);
+            border-color: var(--accent);
+        }
+    </style>
+    <script src="https://d3js.org/d3.v7.min.js"></script>
+</head>
+<body>
+    <div class="workspace">
+        <!-- Header -->
+        <header class="header">
+            <h1>DATACORTEX</h1>
+            <div class="search-box">
+                <input type="text" id="search-input" placeholder="Search files... (Ctrl+P)">
+                <div class="search-results" id="search-results"></div>
+            </div>
+            <div class="links-dropdown">
+                <select id="links-select">
+                    <option value="">Links</option>
+                </select>
+            </div>
+            <button id="btn-graph" class="header-btn">Graph</button>
+        </header>
+
+        <!-- Sidebar -->
+        <aside class="sidebar">
+            <div class="sidebar-header">Explorer</div>
+            <div class="file-tree" id="file-tree"></div>
+        </aside>
+
+        <!-- Main Content -->
+        <main class="main-content">
+            <div class="editor-header">
+                <span class="editor-path" id="editor-path">No file open</span>
+                <div class="editor-actions">
+                    <button id="btn-ask-claude" title="Send file/selection to Claude (Ctrl+Enter)">Ask Claude</button>
+                    <button id="btn-discard">Discard</button>
+                    <button id="btn-save" class="save">Save</button>
+                    <button id="btn-external">External</button>
+                </div>
+            </div>
+            <div class="editor-container">
+                <div id="editor"></div>
+            </div>
+        </main>
+
+        <!-- Resizer -->
+        <div class="resizer" id="resizer"></div>
+
+        <!-- Terminal -->
+        <section class="terminal-section" id="terminal-section">
+            <div class="terminal-header">
+                <span>Claude Code</span>
+                <div class="terminal-actions">
+                    <button id="btn-clear">Clear</button>
+                    <button id="btn-reconnect">Reconnect</button>
+                </div>
+            </div>
+            <div id="terminal-container"></div>
+        </section>
+
+        <!-- Status Bar -->
+        <footer class="status-bar">
+            <span id="status-left">Ready</span>
+            <span id="status-right" class="disconnected">Disconnected</span>
+        </footer>
+
+        <!-- Graph Panel (docked right) -->
+        <aside class="graph-panel" id="graph-panel">
+            <div class="graph-panel-header">
+                <h2>Knowledge Graph</h2>
+                <button class="graph-panel-close" id="graph-close">&times;</button>
+            </div>
+            <div class="graph-container" id="graph-container">
+                <div class="graph-tooltip" id="graph-tooltip"></div>
+            </div>
+        </aside>
+    </div>
+
+    <script type="module">
+        // ===== State =====
+        window.state = {
+            currentFile: null,
+            originalContent: null,
+            modified: false,
+            terminal: null,
+            ws: null,
+            editor: null
+        };
+
+        // ===== File Tree =====
+        async function loadFileTree() {
+            try {
+                const res = await fetch('/api/files/tree?depth=4');
+                const tree = await res.json();
+                renderTree(tree, document.getElementById('file-tree'));
+            } catch (err) {
+                console.error('Failed to load file tree:', err);
+            }
+        }
+
+        function renderTree(node, container, depth = 0) {
+            if (!node) return;
+
+            const item = document.createElement('div');
+            item.className = `tree-item ${node.type}`;
+            item.style.paddingLeft = `${12 + depth * 16}px`;
+            item.setAttribute('data-path', node.path);
+
+            const icon = document.createElement('span');
+            icon.className = 'icon';
+            icon.textContent = node.type === 'directory' ? '>' : '#';
+
+            const name = document.createElement('span');
+            name.textContent = node.name;
+
+            item.appendChild(icon);
+            item.appendChild(name);
+            container.appendChild(item);
+
+            if (node.type === 'directory' && node.children) {
+                const children = document.createElement('div');
+                children.className = 'tree-children';
+                children.setAttribute('data-parent-path', node.path);
+
+                item.addEventListener('click', (e) => {
+                    e.stopPropagation();
+                    item.classList.toggle('collapsed');
+                    icon.textContent = item.classList.contains('collapsed') ? '>' : 'v';
+                });
+
+                icon.textContent = 'v';
+
+                node.children.forEach(child => renderTree(child, children, depth + 1));
+                container.appendChild(children);
+            } else if (node.type === 'file') {
+                item.addEventListener('click', () => openFile(node.path));
+            }
+        }
+
+        // Select a file in the tree by path
+        function selectFileInTree(path) {
+            // Deselect previous
+            document.querySelectorAll('.tree-item.selected').forEach(el => el.classList.remove('selected'));
+
+            // Find and select
+            const item = document.querySelector(`.tree-item[data-path="${path}"]`);
+            if (item) {
+                item.classList.add('selected');
+
+                // Expand parent directories
+                let parent = item.parentElement;
+                while (parent) {
+                    if (parent.classList && parent.classList.contains('tree-children')) {
+                        const prevSibling = parent.previousElementSibling;
+                        if (prevSibling && prevSibling.classList.contains('collapsed')) {
+                            prevSibling.classList.remove('collapsed');
+                            const icon = prevSibling.querySelector('.icon');
+                            if (icon) icon.textContent = 'v';
+                        }
+                    }
+                    parent = parent.parentElement;
+                }
+
+                // Scroll into view
+                item.scrollIntoView({ behavior: 'smooth', block: 'center' });
+            }
+        }
+
+        // ===== Editor =====
+        async function initEditor() {
+            const { EditorView, basicSetup, markdown, oneDark } = window;
+
+            // Wait for CodeMirror to load
+            if (!window.cmLoaded) {
+                setTimeout(initEditor, 100);
+                return;
+            }
+
+            state.editor = new EditorView({
+                doc: "// Select a file to edit",
+                extensions: [
+                    basicSetup,
+                    markdown(),
+                    oneDark,
+                    EditorView.updateListener.of(update => {
+                        if (update.docChanged && state.currentFile) {
+                            state.modified = true;
+                            updateStatus();
+                        }
+                    })
+                ],
+                parent: document.getElementById('editor')
+            });
+        }
+
+        async function openFile(path) {
+            if (state.modified && !confirm('Discard unsaved changes?')) {
+                return;
+            }
+
+            try {
+                const res = await fetch(`/api/files/content/${encodeURIComponent(path)}`);
+                const data = await res.json();
+
+                state.currentFile = path;
+                state.originalContent = data.content;
+                state.modified = false;
+
+                document.getElementById('editor-path').textContent = path;
+
+                // Update editor content
+                if (state.editor) {
+                    state.editor.dispatch({
+                        changes: {
+                            from: 0,
+                            to: state.editor.state.doc.length,
+                            insert: data.content
+                        }
+                    });
+                }
+
+                // Load links for this file
+                loadFileLinks(path);
+
+                // Highlight in tree
+                selectFileInTree(path);
+
+                // Highlight in graph and zoom to node
+                highlightNodeInGraph(path);
+
+                // Notify Claude about the file context
+                sendContextToTerminal(path);
+
+                updateStatus();
+            } catch (err) {
+                console.error('Failed to open file:', err);
+            }
+        }
+
+        async function saveFile() {
+            if (!state.currentFile || !state.editor) return;
+
+            const content = state.editor.state.doc.toString();
+
+            try {
+                const res = await fetch(`/api/files/content/${encodeURIComponent(state.currentFile)}`, {
+                    method: 'PUT',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ content })
+                });
+
+                if (res.ok) {
+                    state.originalContent = content;
+                    state.modified = false;
+                    updateStatus();
+                    document.getElementById('status-left').textContent = 'Saved';
+                    setTimeout(() => updateStatus(), 2000);
+                }
+            } catch (err) {
+                console.error('Failed to save:', err);
+            }
+        }
+
+        function discardChanges() {
+            if (!state.currentFile || !state.editor) return;
+
+            state.editor.dispatch({
+                changes: {
+                    from: 0,
+                    to: state.editor.state.doc.length,
+                    insert: state.originalContent
+                }
+            });
+            state.modified = false;
+            updateStatus();
+        }
+
+        // ===== Links =====
+        async function loadFileLinks(path) {
+            try {
+                const res = await fetch(`/api/files/links/${encodeURIComponent(path)}`);
+                const data = await res.json();
+
+                const select = document.getElementById('links-select');
+                select.innerHTML = '<option value="">Links (' +
+                    (data.outgoing.length + data.incoming.length) + ')</option>';
+
+                if (data.outgoing.length > 0) {
+                    const outGroup = document.createElement('optgroup');
+                    outGroup.label = 'Outgoing';
+                    data.outgoing.forEach(link => {
+                        const opt = document.createElement('option');
+                        opt.value = link.resolved || '';
+                        opt.textContent = link.title + (link.resolved ? '' : ' (unresolved)');
+                        outGroup.appendChild(opt);
+                    });
+                    select.appendChild(outGroup);
+                }
+
+                if (data.incoming.length > 0) {
+                    const inGroup = document.createElement('optgroup');
+                    inGroup.label = 'Backlinks';
+                    data.incoming.forEach(link => {
+                        const opt = document.createElement('option');
+                        opt.value = link.path;
+                        opt.textContent = link.name;
+                        inGroup.appendChild(opt);
+                    });
+                    select.appendChild(inGroup);
+                }
+            } catch (err) {
+                console.error('Failed to load links:', err);
+            }
+        }
+
+        // ===== Search =====
+        let searchTimeout = null;
+
+        async function search(query) {
+            if (!query || query.length < 2) {
+                document.getElementById('search-results').classList.remove('visible');
+                return;
+            }
+
+            try {
+                const res = await fetch(`/api/files/search?q=${encodeURIComponent(query)}`);
+                const data = await res.json();
+
+                const container = document.getElementById('search-results');
+                container.innerHTML = '';
+
+                data.results.forEach(result => {
+                    const div = document.createElement('div');
+                    div.className = 'search-result';
+                    div.innerHTML = `
+                        <div class="path">${result.path}</div>
+                        ${result.preview ? `<div class="preview">${result.preview}</div>` : ''}
+                    `;
+                    div.addEventListener('click', () => {
+                        openFile(result.path);
+                        container.classList.remove('visible');
+                        document.getElementById('search-input').value = '';
+                    });
+                    container.appendChild(div);
+                });
+
+                container.classList.add('visible');
+            } catch (err) {
+                console.error('Search failed:', err);
+            }
+        }
+
+        // ===== Context Sharing =====
+        function sendContextToTerminal(path) {
+            // Don't spam context updates - only send if terminal is ready
+            if (!state.ws || state.ws.readyState !== WebSocket.OPEN) return;
+
+            // Store current context for "Ask Claude" button
+            state.currentContext = path;
+        }
+
+        function askClaudeAboutFile() {
+            if (!state.ws || state.ws.readyState !== WebSocket.OPEN) {
+                alert('Terminal not connected');
+                return;
+            }
+            if (!state.currentFile) {
+                alert('No file open');
+                return;
+            }
+
+            // Send the file path to Claude as a prompt
+            const prompt = `Read and summarize ${state.currentFile}\n`;
+            state.ws.send(new TextEncoder().encode(prompt));
+        }
+
+        function sendSelectionToClaude() {
+            if (!state.ws || state.ws.readyState !== WebSocket.OPEN) {
+                alert('Terminal not connected');
+                return;
+            }
+            if (!state.editor) return;
+
+            // Get selection from CodeMirror
+            const selection = state.editor.state.sliceDoc(
+                state.editor.state.selection.main.from,
+                state.editor.state.selection.main.to
+            );
+
+            if (!selection) {
+                // No selection - send file path
+                if (state.currentFile) {
+                    const text = `I'm looking at ${state.currentFile}. `;
+                    state.ws.send(new TextEncoder().encode(text));
+                }
+            } else {
+                // Send selection as context
+                const text = `Regarding this from ${state.currentFile}:\n\`\`\`\n${selection.slice(0, 500)}\n\`\`\`\n`;
+                state.ws.send(new TextEncoder().encode(text));
+            }
+        }
+
+        // ===== Terminal =====
+        function initTerminal() {
+            const term = new Terminal({
+                cursorBlink: true,
+                fontSize: 11,
+                lineHeight: 1.1,
+                fontFamily: "'JetBrains Mono', 'Fira Code', monospace",
+                scrollback: 5000,
+                convertEol: false,
+                screenReaderMode: false,
+                allowProposedApi: true,
+                overviewRulerWidth: 0,
+                theme: {
+                    background: '#1a1b26',
+                    foreground: '#c0caf5',
+                    cursor: '#c0caf5',
+                    selection: '#414868',
+                    black: '#414868',
+                    red: '#f7768e',
+                    green: '#9ece6a',
+                    yellow: '#e0af68',
+                    blue: '#7aa2f7',
+                    magenta: '#bb9af7',
+                    cyan: '#7dcfff',
+                    white: '#c0caf5',
+                }
+            });
+
+            const fitAddon = new FitAddon.FitAddon();
+            const webLinksAddon = new WebLinksAddon.WebLinksAddon();
+
+            term.loadAddon(fitAddon);
+            term.loadAddon(webLinksAddon);
+
+            term.open(document.getElementById('terminal-container'));
+
+
+            // Multiple delayed fits to ensure container is properly sized
+            // (CSS absolute positioning needs layout to complete)
+            setTimeout(() => {
+                fitAddon.fit();
+                setTimeout(() => {
+                    fitAddon.fit();
+                    // Connect after terminal is properly sized
+                    connectTerminal(fitAddon);
+                }, 100);
+            }, 50);
+
+            state.terminal = term;
+            state.fitAddon = fitAddon;
+
+            // Handle resize with debounce
+            let resizeTimeout;
+            window.addEventListener('resize', () => {
+                clearTimeout(resizeTimeout);
+                resizeTimeout = setTimeout(() => {
+                    fitAddon.fit();
+                    // Sync size to PTY
+                    if (state.ws && state.ws.readyState === WebSocket.OPEN) {
+                        const dims = fitAddon.proposeDimensions();
+                        if (dims) {
+                            state.ws.send(JSON.stringify({ type: 'resize', cols: dims.cols, rows: dims.rows }));
+                        }
+                    }
+                }, 100);
+            });
+
+            return term;
+        }
+
+        function connectTerminal(fitAddon) {
+            const protocol = location.protocol === 'https:' ? 'wss:' : 'ws:';
+            const ws = new WebSocket(`${protocol}//${location.host}/api/terminal`);
+
+            ws.binaryType = 'arraybuffer';
+
+            ws.onopen = () => {
+                document.getElementById('status-right').textContent = 'Connected';
+                document.getElementById('status-right').className = 'connected';
+
+                // Fit terminal first, then send dimensions
+                fitAddon.fit();
+
+                // Use actual terminal dimensions, not proposed
+                const cols = state.terminal.cols;
+                const rows = state.terminal.rows;
+                console.log(`Terminal size: ${cols}x${rows}`);
+
+                ws.send(JSON.stringify({ cols, rows }));
+
+                state.ws = ws;
+            };
+
+            ws.onmessage = (event) => {
+                let text;
+                if (event.data instanceof ArrayBuffer) {
+                    text = new TextDecoder().decode(event.data);
+                } else {
+                    text = event.data;
+                }
+
+                // Filter synchronized output mode
+                text = text.replace(/\x1b\[\?2026[hl]/g, '');
+
+                // No other filtering - pass through as-is
+                state.terminal.write(text);
+            };
+
+            ws.onclose = () => {
+                document.getElementById('status-right').textContent = 'Disconnected';
+                document.getElementById('status-right').className = 'disconnected';
+                state.ws = null;
+            };
+
+            ws.onerror = (err) => {
+                console.error('WebSocket error:', err);
+            };
+
+            // Send terminal input
+            state.terminal.onData(data => {
+                if (ws.readyState === WebSocket.OPEN) {
+                    ws.send(new TextEncoder().encode(data));
+                }
+            });
+
+            // Handle resize
+            state.terminal.onResize(({cols, rows}) => {
+                if (ws.readyState === WebSocket.OPEN) {
+                    ws.send(JSON.stringify({ type: 'resize', cols, rows }));
+                }
+            });
+        }
+
+        // ===== Status =====
+        function updateStatus() {
+            const left = document.getElementById('status-left');
+            if (state.currentFile) {
+                left.textContent = state.modified ? `${state.currentFile} [modified]` : state.currentFile;
+            } else {
+                left.textContent = 'Ready';
+            }
+        }
+
+        // ===== Resizer =====
+        function initResizer() {
+            const resizer = document.getElementById('resizer');
+            const terminalSection = document.getElementById('terminal-section');
+            let startY, startHeight;
+
+            resizer.addEventListener('mousedown', (e) => {
+                startY = e.clientY;
+                startHeight = terminalSection.offsetHeight;
+
+                document.addEventListener('mousemove', resize);
+                document.addEventListener('mouseup', stopResize);
+            });
+
+            function resize(e) {
+                const diff = startY - e.clientY;
+                terminalSection.style.height = `${startHeight + diff}px`;
+            }
+
+            function stopResize() {
+                document.removeEventListener('mousemove', resize);
+                document.removeEventListener('mouseup', stopResize);
+                // Refit terminal
+                if (state.terminal) {
+                    const fitAddon = state.terminal._addonManager._addons.find(a => a.instance.fit);
+                    if (fitAddon) fitAddon.instance.fit();
+                }
+            }
+        }
+
+        // ===== Event Listeners =====
+        function initEventListeners() {
+            // Search
+            const searchInput = document.getElementById('search-input');
+            searchInput.addEventListener('input', (e) => {
+                clearTimeout(searchTimeout);
+                searchTimeout = setTimeout(() => search(e.target.value), 200);
+            });
+
+            searchInput.addEventListener('blur', () => {
+                setTimeout(() => {
+                    document.getElementById('search-results').classList.remove('visible');
+                }, 200);
+            });
+
+            // Keyboard shortcuts
+            document.addEventListener('keydown', (e) => {
+                if ((e.ctrlKey || e.metaKey) && e.key === 'p') {
+                    e.preventDefault();
+                    searchInput.focus();
+                }
+                if ((e.ctrlKey || e.metaKey) && e.key === 's') {
+                    e.preventDefault();
+                    saveFile();
+                }
+                if ((e.ctrlKey || e.metaKey) && e.key === 'Enter') {
+                    e.preventDefault();
+                    sendSelectionToClaude();
+                }
+            });
+
+            // Buttons
+            document.getElementById('btn-save').addEventListener('click', saveFile);
+            document.getElementById('btn-discard').addEventListener('click', discardChanges);
+            document.getElementById('btn-ask-claude').addEventListener('click', sendSelectionToClaude);
+            document.getElementById('btn-external').addEventListener('click', () => {
+                if (state.currentFile) {
+                    fetch(`/api/nodes/${encodeURIComponent(state.currentFile)}/open`, { method: 'POST' });
+                }
+            });
+            document.getElementById('btn-clear').addEventListener('click', () => {
+                if (state.terminal) state.terminal.clear();
+            });
+            document.getElementById('btn-reconnect').addEventListener('click', () => {
+                if (state.ws) state.ws.close();
+                if (state.fitAddon) {
+                    state.fitAddon.fit();
+                    connectTerminal(state.fitAddon);
+                }
+            });
+
+            // Links dropdown
+            document.getElementById('links-select').addEventListener('change', (e) => {
+                if (e.target.value) {
+                    openFile(e.target.value);
+                }
+            });
+        }
+
+        // ===== Init =====
+        // ===== Cleanup orphan xterm divs =====
+        function initXtermCleanup() {
+            // MutationObserver to catch and hide orphan xterm measurement divs
+            const observer = new MutationObserver((mutations) => {
+                for (const mutation of mutations) {
+                    for (const node of mutation.addedNodes) {
+                        if (node.nodeType === Node.ELEMENT_NODE &&
+                            node.tagName === 'DIV' &&
+                            node.style &&
+                            node.style.lineHeight &&
+                            node.style.overflow === 'hidden' &&
+                            !node.closest('#terminal-container') &&
+                            !node.closest('.xterm')) {
+                            // This is an orphan xterm measurement div - hide it
+                            node.style.display = 'none';
+                        }
+                    }
+                }
+            });
+
+            observer.observe(document.body, {
+                childList: true,
+                subtree: true
+            });
+        }
+
+        // ===== Graph Panel (docked right) =====
+        let graphSimulation = null;
+        let graphData = null;
+        let graphSvg = null;
+        let graphG = null;
+        let graphNodes = null;
+        let graphNodeGroup = null;
+        let graphZoom = null;
+        let graphPanelOpen = false;
+
+        async function loadGraphData() {
+            try {
+                const res = await fetch('/api/graph?min_degree=1');
+                graphData = await res.json();
+                return graphData;
+            } catch (err) {
+                console.error('Failed to load graph:', err);
+                return null;
+            }
+        }
+
+        function renderGraph(data) {
+            const container = document.getElementById('graph-container');
+            const tooltip = document.getElementById('graph-tooltip');
+            const width = container.clientWidth;
+            const height = container.clientHeight;
+
+            // Clear existing
+            container.querySelectorAll('svg').forEach(s => s.remove());
+
+            graphSvg = d3.select(container)
+                .append('svg')
+                .attr('width', width)
+                .attr('height', height);
+
+            // Color scale by type
+            const typeColors = {
+                'page': '#7aa2f7',
+                'zettel': '#9ece6a',
+                'journal': '#e0af68',
+                'literature': '#bb9af7',
+                'stub': '#f7768e',
+                'default': '#565f89'
+            };
+
+            // Create simulation - API uses 'links' not 'edges'
+            const links = data.links || data.edges || [];
+            graphSimulation = d3.forceSimulation(data.nodes)
+                .force('link', d3.forceLink(links)
+                    .id(d => d.id)
+                    .distance(60))
+                .force('charge', d3.forceManyBody().strength(-100))
+                .force('center', d3.forceCenter(width / 2, height / 2))
+                .force('collision', d3.forceCollide().radius(20));
+
+            // Zoom
+            graphG = graphSvg.append('g');
+            graphZoom = d3.zoom()
+                .extent([[0, 0], [width, height]])
+                .scaleExtent([0.1, 4])
+                .on('zoom', (event) => graphG.attr('transform', event.transform));
+            graphSvg.call(graphZoom);
+
+            // Edges
+            const link = graphG.append('g')
+                .selectAll('line')
+                .data(links)
+                .enter()
+                .append('line')
+                .attr('stroke', '#414868')
+                .attr('stroke-opacity', 0.6)
+                .attr('stroke-width', 1);
+
+            // Node groups (circle + label)
+            graphNodeGroup = graphG.append('g')
+                .selectAll('g')
+                .data(data.nodes)
+                .enter()
+                .append('g')
+                .attr('data-path', d => d.path || '')
+                .style('cursor', 'pointer')
+                .call(d3.drag()
+                    .on('start', dragstarted)
+                    .on('drag', dragged)
+                    .on('end', dragended));
+
+            // Circles
+            graphNodes = graphNodeGroup.append('circle')
+                .attr('r', d => Math.max(4, Math.min(12, 3 + (d.degree || 0) / 3)))
+                .attr('fill', d => typeColors[d.type] || typeColors.default)
+                .attr('stroke', '#1a1b26')
+                .attr('stroke-width', 1);
+
+            // Labels
+            const labels = graphNodeGroup.append('text')
+                .text(d => d.title || d.id)
+                .attr('font-size', '8px')
+                .attr('fill', '#9aa5ce')
+                .attr('text-anchor', 'middle')
+                .attr('dy', d => Math.max(4, Math.min(12, 3 + (d.degree || 0) / 3)) + 10)
+                .style('pointer-events', 'none')
+                .style('user-select', 'none');
+
+            // Hover tooltip
+            graphNodeGroup.on('mouseover', (event, d) => {
+                tooltip.textContent = d.title || d.id;
+                tooltip.classList.add('visible');
+                tooltip.style.left = `${event.offsetX + 10}px`;
+                tooltip.style.top = `${event.offsetY + 10}px`;
+            })
+            .on('mousemove', (event) => {
+                tooltip.style.left = `${event.offsetX + 10}px`;
+                tooltip.style.top = `${event.offsetY + 10}px`;
+            })
+            .on('mouseout', () => {
+                tooltip.classList.remove('visible');
+            });
+
+            // Click to open file (without closing panel)
+            graphNodeGroup.on('click', async (event, d) => {
+                if (d.path && d.type !== 'stub') {
+                    // Convert absolute path to relative - strip everything before space folder
+                    let relativePath = d.path;
+                    const spaceMatch = d.path.match(/\/([\d]+-[^\/]+\/.*)/);
+                    if (spaceMatch) {
+                        relativePath = spaceMatch[1];
+                    }
+
+                    // Try opening the file, if 404 try path variations
+                    try {
+                        const res = await fetch(`/api/files/content/${encodeURIComponent(relativePath)}`);
+                        if (res.ok) {
+                            openFile(relativePath);
+                        } else {
+                            // Try 2-knowledge -> 3-knowledge mapping
+                            const altPath = relativePath.replace('/2-knowledge/', '/3-knowledge/');
+                            if (altPath !== relativePath) {
+                                openFile(altPath);
+                            }
+                        }
+                    } catch (err) {
+                        console.error('Failed to open file:', err);
+                    }
+                }
+            });
+
+            // Double-click to center
+            graphNodeGroup.on('dblclick', (event, d) => {
+                event.stopPropagation();
+                zoomToNode(d);
+            });
+
+            // Simulation tick - move entire node groups
+            graphSimulation.on('tick', () => {
+                link
+                    .attr('x1', d => d.source.x)
+                    .attr('y1', d => d.source.y)
+                    .attr('x2', d => d.target.x)
+                    .attr('y2', d => d.target.y);
+
+                graphNodeGroup
+                    .attr('transform', d => `translate(${d.x},${d.y})`);
+            });
+
+            // Drag functions
+            function dragstarted(event) {
+                if (!event.active) graphSimulation.alphaTarget(0.3).restart();
+                event.subject.fx = event.subject.x;
+                event.subject.fy = event.subject.y;
+            }
+
+            function dragged(event) {
+                event.subject.fx = event.x;
+                event.subject.fy = event.y;
+            }
+
+            function dragended(event) {
+                if (!event.active) graphSimulation.alphaTarget(0);
+                event.subject.fx = null;
+                event.subject.fy = null;
+            }
+
+            // If a file is currently open, highlight it
+            if (state.currentFile) {
+                highlightNodeInGraph(state.currentFile);
+            }
+        }
+
+        function zoomToNode(d) {
+            if (!graphSvg || !graphZoom) return;
+            const container = document.getElementById('graph-container');
+            const width = container.clientWidth;
+            const height = container.clientHeight;
+            const transform = d3.zoomIdentity
+                .translate(width / 2 - d.x * 1.5, height / 2 - d.y * 1.5)
+                .scale(1.5);
+            graphSvg.transition().duration(500).call(graphZoom.transform, transform);
+        }
+
+        // Highlight a node by file path and zoom to it
+        function highlightNodeInGraph(filePath) {
+            if (!graphNodes || !graphData) return;
+
+            // Clear previous highlights
+            graphNodes.classed('graph-node-highlight', false)
+                .attr('stroke', '#1a1b26')
+                .attr('stroke-width', 1);
+
+            // Try to find matching node by path
+            const matchNode = graphData.nodes.find(n => {
+                if (!n.path) return false;
+                // Direct match
+                if (n.path === filePath) return true;
+                // Match against relative path
+                if (n.path.endsWith(filePath)) return true;
+                // Match the filename part
+                const nodeName = n.path.split('/').pop();
+                const fileName = filePath.split('/').pop();
+                if (nodeName === fileName) return true;
+                // Handle 2-knowledge / 3-knowledge path differences
+                const altPath = filePath.replace('/3-knowledge/', '/2-knowledge/');
+                if (n.path.endsWith(altPath)) return true;
+                return false;
+            });
+
+            if (matchNode) {
+                graphNodes.filter(d => d === matchNode)
+                    .classed('graph-node-highlight', true)
+                    .attr('stroke', '#7aa2f7')
+                    .attr('stroke-width', 3);
+
+                // Only zoom if graph panel is open
+                if (graphPanelOpen) {
+                    zoomToNode(matchNode);
+                }
+            }
+        }
+
+        function toggleGraphPanel() {
+            const workspace = document.querySelector('.workspace');
+            const btn = document.getElementById('btn-graph');
+            graphPanelOpen = !graphPanelOpen;
+            workspace.classList.toggle('graph-open', graphPanelOpen);
+            btn.classList.toggle('active', graphPanelOpen);
+
+            if (graphPanelOpen && !graphData) {
+                loadGraphData().then(data => {
+                    if (data) {
+                        setTimeout(() => renderGraph(data), 100);
+                    }
+                });
+            } else if (graphPanelOpen && graphData) {
+                // Re-render on panel open to adjust to new size
+                setTimeout(() => renderGraph(graphData), 100);
+            }
+        }
+
+        function closeGraphPanel() {
+            graphPanelOpen = false;
+            document.querySelector('.workspace').classList.remove('graph-open');
+            document.getElementById('btn-graph').classList.remove('active');
+            if (graphSimulation) {
+                graphSimulation.stop();
+            }
+        }
+
+        function initGraph() {
+            // Graph button toggles panel
+            document.getElementById('btn-graph').addEventListener('click', toggleGraphPanel);
+
+            // Close button
+            document.getElementById('graph-close').addEventListener('click', closeGraphPanel);
+
+            // Escape to close
+            document.addEventListener('keydown', (e) => {
+                if (e.key === 'Escape' && graphPanelOpen) {
+                    closeGraphPanel();
+                }
+            });
+        }
+
+        async function init() {
+            initXtermCleanup();
+            await loadFileTree();
+            initEditor();
+            initTerminal();
+            initResizer();
+            initEventListeners();
+            initGraph();
+        }
+
+        init();
+    </script>
+</body>
+</html>

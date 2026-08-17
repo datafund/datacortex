@@ -10,7 +10,7 @@ readme = "README.md"
 requires-python = ">=3.10"
 license = "MIT"
 authors = [
-    { name = "Datafund", email = "dev@datafund.io" }
+    { name = "Datacore Contributors", email = "dev@organization.example.com" }
 ]
 dependencies = [
     "fastapi>=0.104.0",
@@ -21,6 +21,8 @@ dependencies = [
     "python-louvain>=0.16",
     "pyyaml>=6.0",
     "click>=8.1.0",
+    "sentence-transformers>=2.2.0",
+    "numpy>=1.24.0",
 ]
 
 [project.optional-dependencies]

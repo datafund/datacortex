@@ -7,7 +7,7 @@ datacore_root: ~/Data
 # Spaces to include in graph
 spaces:
   - personal
-  - datafund
+  - teamspace
 
 # Server settings
 server:

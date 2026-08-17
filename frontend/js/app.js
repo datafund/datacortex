@@ -256,8 +256,8 @@ class Datacortex {
         const container = document.getElementById('space-filters');
         const colors = {
             personal: 'var(--space-personal)',
-            datafund: 'var(--space-datafund)',
-            datacore: 'var(--space-datacore)'
+            teamspace: 'var(--space-teamspace)',
+            projectspace: 'var(--space-projectspace)'
         };
 
         // Use allSpaces for the options, includedSpaces for checked state
