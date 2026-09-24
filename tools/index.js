@@ -3,10 +3,19 @@
 // Plain JS (ESM) for direct dynamic import by the MCP server.
 
 import { z } from 'zod'
+import { findPython } from '@datacore-one/mcp/runtime'
 import { execFile } from 'child_process'
 import { promisify } from 'util'
 import * as path from 'path'
 import * as fs from 'fs'
+import { fileURLToPath } from 'url'
+
+// <root>/.datacore/modules/<name>/tools/index.js -> <root>
+const DATA_ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '../../../..')
+// The MCP server's own interpreter selection: DATACORE_PYTHON, then .datacore/venv,
+// then the first Python that can import yaml. A bare 'python3' ran whatever was
+// first on PATH, which on a Homebrew Mac cannot import the venv's packages.
+const pythonBin = () => findPython(DATA_ROOT) ?? 'python3'
 
 const execFileAsync = promisify(execFile)
 
@@ -37,7 +46,7 @@ async function runQuery(basePath, queryType, extraArgs = {}) {
   }
 
   try {
-    const { stdout, stderr } = await execFileAsync('python3', args, {
+    const { stdout, stderr } = await execFileAsync(pythonBin(), args, {
       cwd: basePath,
       timeout: 30000,
       env: { ...process.env, PYTHONPATH: path.join(basePath, '.datacore', 'lib') },
@@ -99,7 +108,7 @@ result = get_backlinks('${args.target.replace(/'/g, "\\'")}', ${args.space ? `'$
 print(json.dumps(result, default=str))
 `
       try {
-        const { stdout } = await execFileAsync('python3', ['-c', pyCode], {
+        const { stdout } = await execFileAsync(pythonBin(), ['-c', pyCode], {
           cwd: ctx.storage.basePath,
           timeout: 15000,
         })
@@ -129,7 +138,7 @@ result = get_unresolved_links(${args.space ? `'${args.space}'` : 'None'})
 print(json.dumps(result, default=str))
 `
       try {
-        const { stdout } = await execFileAsync('python3', ['-c', pyCode], {
+        const { stdout } = await execFileAsync(pythonBin(), ['-c', pyCode], {
           cwd: ctx.storage.basePath,
           timeout: 15000,
         })
@@ -186,7 +195,7 @@ print(json.dumps(result, default=str))
       }
 
       try {
-        const { stdout } = await execFileAsync('python3', [
+        const { stdout } = await execFileAsync(pythonBin(), [
           indexerScript, '--query', args.query, '--verbose', '--json',
         ], {
           cwd: path.join(ctx.storage.basePath, '.datacore', 'lib'),
@@ -197,7 +206,7 @@ print(json.dumps(result, default=str))
       } catch (err) {
         // Fall back to non-JSON output
         try {
-          const { stdout } = await execFileAsync('python3', [
+          const { stdout } = await execFileAsync(pythonBin(), [
             indexerScript, '--query', args.query, '--verbose',
           ], {
             cwd: path.join(ctx.storage.basePath, '.datacore', 'lib'),
