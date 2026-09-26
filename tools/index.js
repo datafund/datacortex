@@ -2,8 +2,7 @@
 // Wraps Python query_library.py via subprocess for graph queries.
 // Plain JS (ESM) for direct dynamic import by the MCP server.
 
-import { z } from 'zod'
-import { findPython } from '@datacore-one/mcp/runtime'
+import { z, findPython } from '@datacore-one/mcp/runtime'
 import { execFile } from 'child_process'
 import { promisify } from 'util'
 import * as path from 'path'
