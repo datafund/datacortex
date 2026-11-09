@@ -1,7 +1,12 @@
 """Tests for insights module."""
 
 import pytest
-from datacortex.insights.analyzer import (
+
+# networkx is declared (requirements.txt, pyproject) but may be absent from the
+# shared Datacore venv; say so instead of failing collection.
+pytest.importorskip("networkx", reason="needs package networkx (requirements.txt)")
+
+from datacortex.insights.analyzer import (  # noqa: E402
     ClusterAnalysis,
     InsightsResult,
     get_cluster_stats,
@@ -9,8 +14,8 @@ from datacortex.insights.analyzer import (
     get_tag_frequency,
     get_cluster_connections,
 )
-from datacortex.insights.formatter import format_insights, format_cluster_summary
-from datacortex.core.models import Node, Edge, NodeType
+from datacortex.insights.formatter import format_insights, format_cluster_summary # noqa: E402
+from datacortex.core.models import Node, Edge, NodeType # noqa: E402
 
 
 def test_cluster_analysis_dataclass():
